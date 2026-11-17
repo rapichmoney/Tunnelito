@@ -18,7 +18,7 @@ function Proxy-Snapshot{Get-ItemProperty -LiteralPath $proxyKey | Select-Object 
 $proxyBefore=Proxy-Snapshot
 function Wait-For($Check,[int]$Seconds=35){$deadline=[DateTime]::UtcNow.AddSeconds($Seconds);do{try{$value=&$Check;if($value){return $value}}catch [System.Windows.Automation.ElementNotAvailableException]{};Start-Sleep -Milliseconds 100}while([DateTime]::UtcNow -lt $deadline);throw 'Timed out waiting for isolated interface restart'}
 function Port-Ready{try{$client=[Net.Sockets.TcpClient]::new();$task=$client.ConnectAsync('127.0.0.1',$port);$ready=$task.Wait(150)-and $client.Connected;$client.Dispose();return $ready}catch{return $false}}
-function App-Process([int]$Except=0,[string]$ResumeToken=""){Get-CimInstance Win32_Process -Filter "Name='RelayDesk.exe'" | Where-Object {$_.ExecutablePath -eq $Executable -and $_.ProcessId -ne $Except -and (!$ResumeToken -or $_.CommandLine.Contains($ResumeToken))} | Select-Object -First 1}
+function App-Process([int]$Except=0,[string]$ResumeToken=""){Get-CimInstance Win32_Process -Filter "Name='RelayDesk.exe' OR Name='Tunnelito.exe'" | Where-Object {$_.ExecutablePath -eq $Executable -and $_.ProcessId -ne $Except -and (!$ResumeToken -or $_.CommandLine.Contains($ResumeToken))} | Select-Object -First 1}
 function Root-Window($Process){$p=Get-Process -Id $Process.ProcessId -ErrorAction SilentlyContinue;if($p -and $p.MainWindowHandle -ne [IntPtr]::Zero){return [System.Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)}}
 function By-Id($Root,$Name){$Root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty,$Name))}
 function Invoke-Button($Button){$Button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()}
@@ -58,6 +58,6 @@ try{
  'PASS classic to Orbit restores VPN, selected server and original JSON; Windows proxy unchanged'
  'COMPLETE: native two-way UI restart verified'
 }finally{
- if($owned){try{$root=Root-Window $owned;$close=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,'Закрыть RelayDesk'));if($close){Invoke-Button $close}}catch{}}
+ if($owned){try{$root=Root-Window $owned;$close=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,'Закрыть Tunnelito'));if($close){Invoke-Button $close}}catch{}}
  $env:RELAYDESK_DATA_DIR=$oldOverride
 }

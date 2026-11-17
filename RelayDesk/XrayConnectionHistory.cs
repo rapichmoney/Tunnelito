@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -33,7 +33,7 @@ public sealed class XrayConnectionHistory
         return events.ToArray().Where(e=>e.Time>DateTimeOffset.UtcNow.AddMinutes(-3)).TakeLast(1000).Select(e=>
         {
             var route=ConnectionMonitor.Classify([e.Outbound],types);
-            var scope=!zapret ? "В RelayDesk выключен" : route=="Напрямую" ? ConnectionMonitor.MatchZapret(e.Network,e.Port,e.Host,arguments) : "Внешний туннель";
+            var scope=!zapret ? "В Tunnelito выключен" : route=="Напрямую" ? ConnectionMonitor.MatchZapret(e.Network,e.Port,e.Host,arguments) : "Внешний туннель";
             return new ConnectionRow("xray-"+e.Id,"Не определено ядром",e.Host+":"+e.Port,e.Network,route,e.Outbound,"Журнал Xray / "+e.Time.ToLocalTime().ToString("HH:mm:ss"),scope,"Не сообщает ядро") { Host=IPAddress.TryParse(e.Host,out _) ? "" : e.Host,Address=IPAddress.TryParse(e.Host,out _) ? e.Host : "",CanEdit=true };
         }).ToList();
     }

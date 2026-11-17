@@ -21,7 +21,7 @@ try {
     }
     $resolvedInstaller = [IO.Path]::GetFullPath($Installer)
     $downloadRoot = [IO.Path]::GetFullPath((Join-Path $DataFolder 'application-updates')).TrimEnd('\') + '\'
-    if (!$resolvedInstaller.StartsWith($downloadRoot,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($resolvedInstaller) -notmatch '^RelayDesk-Setup-\d+\.\d+\.\d+-x64\.exe$') { throw 'Unexpected installer path.' }
+    if (!$resolvedInstaller.StartsWith($downloadRoot,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($resolvedInstaller) -notmatch '^(?:Tunnelito|RelayDesk)-Setup-\d+\.\d+\.\d+-x64\.exe$') { throw 'Unexpected installer path.' }
     if ($Sha256 -notmatch '^[a-fA-F0-9]{64}$' -or (Get-FileHash -LiteralPath $resolvedInstaller -Algorithm SHA256).Hash -ne $Sha256) { throw 'Installer SHA-256 changed. Update cancelled.' }
     $arguments = @('/SILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/NOLAUNCH=1')
     if($ResumeToken){if($ResumeToken -notmatch '^[a-fA-F0-9]{32}$'){throw 'Invalid restart token'};$arguments+='/RESUMEUPDATE='+$ResumeToken}
@@ -37,7 +37,8 @@ try {
         $registration = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RelayDesk-Desktop-A7B02E29-4D16-47F0-B8F3-3B829E1F024D_is1'
         $InstallDirectory = $registration.InstallLocation
     }
-    $appPath = Join-Path $InstallDirectory 'RelayDesk.exe'
+    $appPath = Join-Path $InstallDirectory 'Tunnelito.exe'
+    if (!(Test-Path -LiteralPath $appPath)) { $appPath = Join-Path $InstallDirectory 'RelayDesk.exe' }
     if (!(Test-Path -LiteralPath $appPath)) { throw 'Installed application not found.' }
     $pendingPath = Join-Path $DataFolder 'pending-app-update.json'
     if (Test-Path -LiteralPath $pendingPath) { Remove-Item -LiteralPath $pendingPath -Force }
@@ -53,7 +54,7 @@ try {
 } catch {
     Set-Content -LiteralPath $statusPath -Value $_.Exception.Message
     Add-Type -AssemblyName PresentationFramework
-    [System.Windows.MessageBox]::Show('Не удалось установить обновление RelayDesk: ' + $_.Exception.Message + "`nПрежнюю версию можно открыть через ярлык.",'RelayDesk') | Out-Null
+    [System.Windows.MessageBox]::Show('Не удалось установить обновление Tunnelito: ' + $_.Exception.Message + "`nПрежнюю версию можно открыть через ярлык.",'Tunnelito') | Out-Null
     exit 1
 }
 finally { if ($applyLock) { $applyLock.Dispose() } }

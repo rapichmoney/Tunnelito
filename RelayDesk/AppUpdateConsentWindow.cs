@@ -8,12 +8,12 @@ public sealed class AppUpdateConsentWindow : ThemedWindow
 {
     public AppUpdateConsentWindow(AppRelease release)
     {
-        Title = "Обновление RelayDesk"; Width = 620; Height = 490; MinHeight = 350;
+        Title = "Обновление Tunnelito"; Width = 620; Height = 490; MinHeight = 350;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var panel = new DockPanel { Margin = new Thickness(24) }; Content = panel;
-        var heading = new TextBlock { Text = "RelayDesk " + release.Version, FontSize = 25, FontWeight = FontWeights.SemiBold };
+        var heading = new TextBlock { Text = "Tunnelito " + release.Version, FontSize = 25, FontWeight = FontWeights.SemiBold };
         DockPanel.SetDock(heading, Dock.Top); panel.Children.Add(heading);
-        var warning = new TextBlock { Text = "Установщик загрузится с GitHub и пройдёт проверку SHA-256. Затем RelayDesk закроется: VPN и zapret будут остановлены. После установки приложение откроется снова.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 18) };
+        var warning = new TextBlock { Text = "Установщик загрузится с GitHub и пройдёт проверку SHA-256. Затем Tunnelito закроется: VPN и zapret будут остановлены. После установки приложение откроется снова.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 18) };
         DockPanel.SetDock(warning, Dock.Top); panel.Children.Add(warning);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
         DockPanel.SetDock(actions, Dock.Bottom); panel.Children.Add(actions);

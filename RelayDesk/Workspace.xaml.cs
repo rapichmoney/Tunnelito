@@ -71,7 +71,7 @@ public partial class Workspace : UserControl
         InitializeConnections();
         InitializeStartup();
         InitializeUpdateHandoff();
-        Write("RelayDesk " + AppUpdates.CurrentVersion + ". Сборка: " + Environment.ProcessPath);
+        Write("Tunnelito " + AppUpdates.CurrentVersion + ". Сборка: " + Environment.ProcessPath);
     }
     void WindowsThemeChanged(object sender, UserPreferenceChangedEventArgs e) => Dispatcher.BeginInvoke(new Action(() => { if (store.Settings.Theme == "Системная") ApplyTheme(); }));
     async void ClosingWindow(object? sender, CancelEventArgs e)
@@ -79,7 +79,7 @@ public partial class Workspace : UserControl
         if (closed) return;
         e.Cancel = true;
         if (closing) return;
-        if (!updateClosing && HasChanges() && MessageBox.Show(Window.GetWindow(this), "Есть несохранённые изменения профиля. Закрыть без сохранения?", "RelayDesk", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        if (!updateClosing && HasChanges() && MessageBox.Show(Window.GetWindow(this), "Есть несохранённые изменения профиля. Закрыть без сохранения?", "Tunnelito", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
         closing = true; IsEnabled = false; startupCancel.Cancel(); diagnostics.Cancel(); automationCancel.Cancel(); updateTimer.Stop(); updateCancel.Cancel(); supportTimer.Stop(); supportCancel.Cancel(); connectionTimer.Stop(); connectionCancel.Cancel();
         try
         {
@@ -149,7 +149,7 @@ public partial class Workspace : UserControl
     bool CanSwitch()
     {
         if (!HasChanges()) return true;
-        return MessageBox.Show(Window.GetWindow(this), "Есть несохранённые изменения. Перейти без сохранения?", "RelayDesk", MessageBoxButton.YesNo) == MessageBoxResult.Yes;
+        return MessageBox.Show(Window.GetWindow(this), "Есть несохранённые изменения. Перейти без сохранения?", "Tunnelito", MessageBoxButton.YesNo) == MessageBoxResult.Yes;
     }
     void ProfileSelected(object sender, SelectionChangedEventArgs e)
     {
@@ -238,7 +238,7 @@ public partial class Workspace : UserControl
     {
         var p = RequireProfile(); EnsureEditable();
         if (Fields() != savedFields) throw new InvalidOperationException("Сначала сохрани настройки профиля, чтобы не потерять изменения полей.");
-        if (p.Managed && MessageBox.Show("Сохранить как ручную конфигурацию? TUN и DNS после этого настраиваются в JSON.", "RelayDesk", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return Task.CompletedTask;
+        if (p.Managed && MessageBox.Show("Сохранить как ручную конфигурацию? TUN и DNS после этого настраиваются в JSON.", "Tunnelito", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return Task.CompletedTask;
         var text = ConfigEditor.Text;
         var previousMode=SharedConnection.Read(p);
         if (p.Core is "sing-box" or "Xray") text = JsonTools.Object(text).ToJsonString(JsonTools.Options);
@@ -270,7 +270,7 @@ public partial class Workspace : UserControl
     void DeleteClick(object sender, RoutedEventArgs e) => Safe(() =>
     {
         var p = RequireProfile(); EnsureEditable();
-        if (MessageBox.Show("Удалить профиль «" + p.Name + "»?", "RelayDesk", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return Task.CompletedTask;
+        if (MessageBox.Show("Удалить профиль «" + p.Name + "»?", "Tunnelito", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return Task.CompletedTask;
         store.Profiles.Remove(p); selected = null; store.Save(); RefreshProfiles();
         if (store.Profiles.Count > 0) ProfileList.SelectedIndex = 0;
         else { ServerTitle.Text = "Добавь сервер"; ServerDescription.Text = "Вставь ссылку из буфера или импортируй JSON."; ConfigEditor.Clear(); UpdateStatus(); }

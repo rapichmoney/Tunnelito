@@ -33,7 +33,7 @@ public sealed class QrShare
     public static QrShare Decode(string text)
     {
         const string prefix="relaydesk-share-v1:";
-        if(!text.StartsWith(prefix,StringComparison.Ordinal)||text.Length>100_000)throw new FormatException("Некорректный пакет RelayDesk.");
+        if(!text.StartsWith(prefix,StringComparison.Ordinal)||text.Length>100_000)throw new FormatException("Некорректный пакет Tunnelito.");
         using var input=new MemoryStream(Convert.FromBase64String(text[prefix.Length..]));using var zip=new BrotliStream(input,CompressionMode.Decompress);using var output=new MemoryStream();
         var buffer=new byte[8192];int count;while((count=zip.Read(buffer))>0){if(output.Length+count>2_000_000)throw new FormatException("Пакет больше 2 МБ.");output.Write(buffer,0,count);}
         var result=JsonSerializer.Deserialize<QrShare>(output.ToArray())??throw new FormatException("Пакет пуст.");

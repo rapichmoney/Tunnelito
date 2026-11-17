@@ -17,7 +17,6 @@ public partial class MainWindow
     {
         InitializeInterfaceChoice();if(legacyUi)return;
         OrbitSettingsDrawer.Visibility=Visibility.Collapsed;
-        backend.ModernSession.Changed+=()=>Dispatcher.BeginInvoke(RefreshFromBackend);
         SetOrbitBackground(backend.ModernStore.Settings.OrbitBackground,false);
     }
     static string OrbitGroup(Profile p)=>p.SubscriptionGroup.Length>0?p.SubscriptionGroup:p.SubscriptionId.Length>0?"Подписка":"Мои конфигурации";
@@ -55,7 +54,7 @@ public partial class MainWindow
         OrbitPaint(OrbitVpnTab,BackgroundProperty,orbitComponent=="vpn"?"#303030":"#101010");OrbitPaint(OrbitZapretTab,BackgroundProperty,orbitComponent=="zapret"?"#303030":"#101010");
         PositionOrbitMode(mode);OrbitAutoChoice.Content=store.Settings.AutoServer?"Автовыбор включён":"Автовыбор при подключении";
         OrbitPresetChoice.Content=RoutingPresets.Label(store.Settings.RoutingPreset);
-        OrbitUpdateStatus.Text=backend.ModernHasUpdate?"Доступна версия "+backend.ModernUpdateVersion:"RelayDesk "+AppUpdates.CurrentVersion+" · GitHub";
+        OrbitUpdateStatus.Text=backend.ModernHasUpdate?"Доступна версия "+backend.ModernUpdateVersion:"Tunnelito "+AppUpdates.CurrentVersion+" · GitHub";
         foreach(var pair in orbitRows)
         {
             bool selected=pair.Key==backend.ModernProfile?.Id;

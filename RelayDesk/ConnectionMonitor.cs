@@ -59,7 +59,7 @@ public sealed class ConnectionMonitor : IDisposable
             var network = JsonTools.Text(metadata?["network"]).ToUpperInvariant();
             var chains = (item["chains"] as JsonArray ?? []).Select(n => JsonTools.Text(n)).ToArray();
             var route = Classify(chains, types);
-            string scope = zapret == null ? "Состояние zapret неизвестно" : zapret == false ? "В RelayDesk выключен" : route != "Напрямую" ? "Не определено для внешнего туннеля" : MatchZapret(network, port, host, arguments);
+            string scope = zapret == null ? "Состояние zapret неизвестно" : zapret == false ? "В Tunnelito выключен" : route != "Напрямую" ? "Не определено для внешнего туннеля" : MatchZapret(network, port, host, arguments);
             long.TryParse(JsonTools.Text(item["upload"]), out var upload); long.TryParse(JsonTools.Text(item["download"]), out var download);
             rows.Add(new(JsonTools.Text(item["id"]), app, (host.Length > 0 ? host : ip) + ":" + port, network, route, string.Join(" → ", chains), JsonTools.Text(item["rule"]) + " " + JsonTools.Text(item["rulePayload"]), scope, $"↑ {JsonTools.Text(item["upload"])} / ↓ {JsonTools.Text(item["download"])} Б") { ProcessPath = path, Host = host, Address = ip, TotalBytes = Math.Max(0,upload) + Math.Max(0,download) });
         }

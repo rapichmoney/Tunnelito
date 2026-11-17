@@ -25,9 +25,9 @@ public sealed class MainDropWindow : Window,IDisposable
     public MainDropWindow(IntPtr target,int parent,Action<OverlayDrop> dropped,Action<string>? report=null)
     {
         GetWindowThreadProcessId(target,out uint process);
-        if(target==IntPtr.Zero||process!=parent)throw new ArgumentException("Неверное окно RelayDesk.");
+        if(target==IntPtr.Zero||process!=parent)throw new ArgumentException("Неверное окно Tunnelito.");
         this.target=target;this.dropped=dropped;this.report=report;
-        Title="RelayDesk · Перетащи приложение или ссылку";WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
+        Title="Tunnelito · Перетащи приложение или ссылку";WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
         ShowActivated=false;ShowInTaskbar=false;Topmost=true;AllowsTransparency=true;Background=new SolidColorBrush(Color.FromArgb(245,16,19,24));
         FontFamily=new FontFamily("Segoe UI");Foreground=new SolidColorBrush(Color.FromRgb(236,238,242));
         AllowDrop=!(Environment.GetEnvironmentVariable("RELAYDESK_DATA_DIR")!=null&&Environment.GetEnvironmentVariable("RELAYDESK_QA_ADDRESS_FALLBACK")=="1");

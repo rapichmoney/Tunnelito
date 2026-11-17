@@ -55,7 +55,7 @@ public partial class Workspace
             (store.Settings.WindowsStartup, store.Settings.StartupVpn, store.Settings.StartupZapret, store.Settings.StartupProfileId) = previous;
             store.Save(); throw;
         }
-        StartupStatus.Text = enabled ? "Сохранено. RelayDesk запустится через 15 секунд после входа в Windows и включит выбранные компоненты, когда появится сеть." : "Автозапуск выключен. Задача Windows удалена.";
+        StartupStatus.Text = enabled ? "Сохранено. Tunnelito запустится через 15 секунд после входа в Windows и включит выбранные компоненты, когда появится сеть." : "Автозапуск выключен. Задача Windows удалена.";
         if (!enabled) CancelWindowsStartup();
     }
     void CancelWindowsStartup()

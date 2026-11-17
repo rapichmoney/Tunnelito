@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace RelayDesk;
 
@@ -28,7 +28,7 @@ public partial class Workspace
         TunModeHint.Text = selected?.Managed == true
             ? enabled ? "Включён в профиле. Применится после сохранения и следующего подключения." : "Выключен. Для подключения приложения нужен HTTP / SOCKS или системный прокси."
             : selected?.Core == "sing-box"
-                ? enabled ? "TUN включён в исходном JSON. Его параметры меняются в конфигурации." : "В исходном JSON нет TUN. При разделении Discord RelayDesk добавит его в рабочую копию."
+                ? enabled ? "TUN включён в исходном JSON. Его параметры меняются в конфигурации." : "В исходном JSON нет TUN. При разделении Discord Tunnelito добавит его в рабочую копию."
                 : "Этот переключатель доступен для профилей sing-box, импортированных из ссылки.";
         if (store.Settings.ConditionalRouting || store.Settings.DiscordSplit)
             TunModeHint.Text += " Для разделения Discord TUN включается в рабочей копии; исходный JSON сохраняется.";

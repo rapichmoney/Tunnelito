@@ -123,7 +123,7 @@ public sealed class OverlayBridge:ITrafficOverlay
         if(shell.IsInvalid||!OpenProcessToken(shell.DangerousGetHandle(),0x0008,out var access))throw new System.ComponentModel.Win32Exception();
         using(access)
         {
-            using var identity=new WindowsIdentity(access.DangerousGetHandle());using var current=WindowsIdentity.GetCurrent();if(identity.User!=current.User)throw new InvalidOperationException("Открой RelayDesk из своей учётной записи Windows.");
+            using var identity=new WindowsIdentity(access.DangerousGetHandle());using var current=WindowsIdentity.GetCurrent();if(identity.User!=current.User)throw new InvalidOperationException("Открой Tunnelito из своей учётной записи Windows.");
             IntPtr bytes=IntPtr.Zero;InitializeProcThreadAttributeList(IntPtr.Zero,1,0,ref bytes);
             if(bytes==IntPtr.Zero)throw new System.ComponentModel.Win32Exception();
             IntPtr attributes=Marshal.AllocHGlobal(bytes),parent=Marshal.AllocHGlobal(IntPtr.Size);bool initialized=false;

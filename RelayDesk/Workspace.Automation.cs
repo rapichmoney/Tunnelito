@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -64,7 +64,7 @@ public partial class Workspace
     void SaveAutomationClick(object sender, RoutedEventArgs e) => Safe(() => { if (HasChanges()) throw new InvalidOperationException("Сначала сохрани изменения профиля."); SaveAutomation(); DisplayProfile(); AutomationStatus.Text = "Настройки сохранены. Работающие подключения не менялись; правила применятся при следующем запуске или переключении режима."; return Task.CompletedTask; });
     async Task Automatic(Func<CancellationToken, Task> action, bool allowVpn = false)
     {
-        if (automationBusy || session.Busy || !allowVpn && session.ProxyRunning || installingUpdate) throw new InvalidOperationException("Дождись текущей операции; для запуска нового VPN отключи прежнее подключение RelayDesk.");
+        if (automationBusy || session.Busy || !allowVpn && session.ProxyRunning || installingUpdate) throw new InvalidOperationException("Дождись текущей операции; для запуска нового VPN отключи прежнее подключение Tunnelito.");
         automationCancel.Dispose(); automationCancel = new(); automationBusy = true; UpdateStatus();
         try { await action(automationCancel.Token); }
         finally { automationBusy = false; UpdateStatus(); }

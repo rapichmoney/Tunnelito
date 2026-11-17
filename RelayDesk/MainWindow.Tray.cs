@@ -25,7 +25,7 @@ public partial class MainWindow
             trayImage=System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!)??(System.Drawing.Icon)SystemIcons.Application.Clone();
             trayMenu=new Forms.ContextMenuStrip{BackColor=Color.FromArgb(27,30,37),ForeColor=Color.FromArgb(236,238,242),Font=new Font("Segoe UI",10)};
             trayMenu.Renderer=new TrayRenderer();trayMenu.Opening+=(_,_)=>BuildTrayMenu();
-            trayIcon=new Forms.NotifyIcon{Icon=trayImage,ContextMenuStrip=trayMenu,Text="RelayDesk",Visible=true};
+            trayIcon=new Forms.NotifyIcon{Icon=trayImage,ContextMenuStrip=trayMenu,Text="Tunnelito",Visible=true};
             trayIcon.MouseClick+=(_,e)=>{if(e.Button==Forms.MouseButtons.Left)Dispatcher.BeginInvoke(ShowFromTray);};
             trayIcon.DoubleClick+=(_,_)=>Dispatcher.BeginInvoke(ShowFromTray);
             RefreshTrayStatus();
@@ -40,7 +40,7 @@ public partial class MainWindow
     void RefreshTrayStatus()
     {
         if(trayIcon==null)return;
-        string text="RelayDesk\nVPN: "+(vpn?"включён":"выключен")+" | zapret: "+(zapret?"включён":"выключен");
+        string text="Tunnelito\nVPN: "+(vpn?"включён":"выключен")+" | zapret: "+(zapret?"включён":"выключен");
         if(text==trayText)return;trayIcon.Text=text.Length>63?text[..63]:text;trayText=text;
     }
     void BuildTrayMenu()
@@ -51,7 +51,7 @@ public partial class MainWindow
             var item=new Forms.ToolStripMenuItem(text){Enabled=enabled};if(check.HasValue){item.Checked=check.Value;item.CheckOnClick=false;}
             item.Click+=(_,_)=>Dispatcher.BeginInvoke(action);trayMenu.Items.Add(item);return item;
         }
-        Item("Открыть RelayDesk",ShowFromTray);
+        Item("Открыть Tunnelito",ShowFromTray);
         trayMenu.Items.Add(new Forms.ToolStripSeparator());
         Item("VPN · "+(vpn?"выключить":"включить"),()=>ToggleVpn(this,new RoutedEventArgs()),!vpnBusy,vpn);
         Item("zapret · "+(zapret?"выключить":"включить"),()=>ToggleZapret(this,new RoutedEventArgs()),!zapretBusy,zapret);

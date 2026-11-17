@@ -57,7 +57,7 @@ public partial class MainWindow
         var session=backend.ModernSession;
         if(!session.ProxyRunning||session.ActiveProfile==null||session.Busy)
         {
-            trafficPid=0;trafficMeter.Reset();trafficOverlay.Update(session.Busy?"Переподключение…":"VPN выключен",null,"Только VPN RelayDesk. Трафик напрямую и zapret не учитывается.");return;
+            trafficPid=0;trafficMeter.Reset();trafficOverlay.Update(session.Busy?"Переподключение…":"VPN выключен",null,"Только VPN Tunnelito. Трафик напрямую и zapret не учитывается.");return;
         }
         var pid=session.Proxy!.Id;var config=session.ActiveRuntimeConfig;var profile=session.ActiveProfile;
         if(pid!=trafficPid){trafficPid=pid;trafficMeter.Reset();trafficOverlay.Update(profile.Name,null,"Первый замер…");}

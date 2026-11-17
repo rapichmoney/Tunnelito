@@ -508,6 +508,18 @@ Check(AppUpdates.PlainText("abc\0\u001bdef", 4) == "abcd…", "App release text 
 bool fixedSourceRejected=false;
 try { await appUpdater.Check("other-owner/other-repo","0.8.0",CancellationToken.None); } catch(InvalidDataException) { fixedSourceRejected=true; }
 Check(fixedSourceRejected && releaseRequests==1,"Application updater refuses a different repository before making a request");
+var renamedRelease=(JsonObject)releaseFixture.DeepClone();
+renamedRelease["assets"]![0]!["name"]="Tunnelito-Setup-9.8.7-x64.exe";
+renamedRelease["assets"]![0]!["browser_download_url"]="https://github.com/rapichmoney/Tunnelito/releases/download/v9.8.7/Tunnelito-Setup-9.8.7-x64.exe";
+var canonicalRelease=AppUpdates.Parse(renamedRelease,AppUpdates.DefaultRepository,"0.31.0");
+Check(canonicalRelease.File.Name=="Tunnelito-Setup-9.8.7-x64.exe"&&canonicalRelease.Available,"Tunnelito updater accepts new package and canonical owner");
+foreach(var previous in new[]{"bernicetownsend1955/RelayDesk-VPN","rapichmoney/RelayDesk-VPN"})
+    Check(AppUpdates.Parse(renamedRelease,previous,"0.31.0").Available,"Old project alias accepts canonical GitHub asset after rename: "+previous);
+var unrelated=(JsonObject)renamedRelease.DeepClone();unrelated["assets"]![0]!["browser_download_url"]="https://github.com/rapichmoney/OtherProject/releases/download/v9.8.7/Tunnelito-Setup-9.8.7-x64.exe";
+RejectRelease(()=>AppUpdates.Parse(unrelated,AppUpdates.DefaultRepository,"0.31.0"),"Rename compatibility still rejects unrelated repositories");
+var renamedDownload=await appUpdater.Download(canonicalRelease,appDownloadFolder,_=>{},CancellationToken.None);
+PendingUpdates.StageApp(appDownloadFolder,canonicalRelease,renamedDownload);PendingUpdates.ValidateApp(appDownloadFolder,PendingUpdates.App(appDownloadFolder)!);
+Check(Path.GetFileName(renamedDownload)==canonicalRelease.File.Name,"New package name survives verified download and staged update validation");
 foreach(var coreId in new[]{"Xray","mihomo"})
 {
     var coreName=coreId=="Xray" ? "Xray-windows-64.zip" : "mihomo-windows-amd64-compatible-v9.8.7.zip";

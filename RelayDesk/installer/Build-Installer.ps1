@@ -1,4 +1,4 @@
-param([string]$Compiler = "$PSScriptRoot\tools\InnoSetup\ISCC.exe", [switch]$TestBuild, [string]$Repository = '')
+﻿param([string]$Compiler = "$PSScriptRoot\tools\InnoSetup\ISCC.exe", [switch]$TestBuild, [string]$Repository = '')
 $ErrorActionPreference = 'Stop'
 $project = Split-Path $PSScriptRoot -Parent
 [xml]$definition = Get-Content -LiteralPath (Join-Path $project 'RelayDesk.csproj')
@@ -28,5 +28,5 @@ if (!$TestBuild) {
         }
     }
 }
-$setupName = if ($TestBuild) { 'RelayDesk-Setup-QA.exe' } else { 'RelayDesk-Setup-'+$version+'-x64.exe' }
+$setupName = if ($TestBuild) { 'Tunnelito-Setup-QA.exe' } else { 'Tunnelito-Setup-'+$version+'-x64.exe' }
 Get-FileHash -LiteralPath (Join-Path (Join-Path $PSScriptRoot 'output') $setupName) -Algorithm SHA256

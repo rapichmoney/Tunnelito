@@ -15,8 +15,8 @@
    <DockPanel MinHeight="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
     <StackPanel DockPanel.Dock="Top">
      <DockPanel Margin="8,0,0,0">
-      <Border Width="30" Height="30" CornerRadius="6" Background="{DynamicResource Action}" Margin="0,0,10,0" DockPanel.Dock="Left"><Path Data="M7,7 L7,23 M7,7 L17,7 C23,7 23,16 17,16 L7,16 M15,16 L23,24" Stroke="White" StrokeThickness="2" Width="18" Height="18" Stretch="Uniform"/></Border>
-      <TextBlock Text="RelayDesk" FontSize="21" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <Border Width="30" Height="30" Margin="0,0,10,0" DockPanel.Dock="Left"><local:RouteMark xmlns:local="clr-namespace:RelayDesk" Width="28" Height="28"/></Border>
+      <TextBlock Text="Tunnelito" FontSize="21" FontWeight="SemiBold" VerticalAlignment="Center" />
      </DockPanel>
      <TextBlock Text="Управление подключением" Style="{StaticResource Caption}" Margin="8,8,0,22" />
      <ListBox SelectedIndex="{Binding SelectedIndex, ElementName=Tabs, Mode=TwoWay}" Margin="0,0,0,10" x:Name="Navigation">
@@ -293,7 +293,7 @@
         <Border Style="{StaticResource Panel}" Margin="0,0,0,14">
          <StackPanel>
           <TextBlock Text="Запуск вместе с Windows" FontSize="17" FontWeight="SemiBold"/>
-          <CheckBox x:Name="WindowsStartupToggle" Content="Запускать RelayDesk при входе в Windows" Style="{StaticResource Switch}"/>
+          <CheckBox x:Name="WindowsStartupToggle" Content="Запускать Tunnelito при входе в Windows" Style="{StaticResource Switch}"/>
           <CheckBox x:Name="StartupVpnToggle" Content="Автоматически включать VPN"/>
           <CheckBox x:Name="StartupZapretToggle" Content="Автоматически включать zapret"/>
           <TextBlock Text="Профиль VPN для автозапуска" Style="{StaticResource Label}"/>
@@ -586,11 +586,11 @@
     <TabItem Header="Обновления">
      <DockPanel LastChildFill="True" Margin="0,12,0,0">
       <TextBlock Text="Обновления приложения и ядер" FontSize="21" FontWeight="SemiBold" DockPanel.Dock="Top" />
-      <TextBlock Text="sing-box — ядро VPN. zapret / winws — обход DPI. NekoBox для работы RelayDesk не требуется." Style="{StaticResource Caption}" Margin="0,8,0,0" DockPanel.Dock="Top" />
+      <TextBlock Text="sing-box — ядро VPN. zapret / winws — обход DPI. NekoBox для работы Tunnelito не требуется." Style="{StaticResource Caption}" Margin="0,8,0,0" DockPanel.Dock="Top" />
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
        <StackPanel Margin="0,12,14,0">
         <CheckBox x:Name="AutoUpdates" Content="Автоматически проверять, загружать и готовить обновления" Click="AutoUpdatesChanged" />
-        <TextBlock Text="Источники закреплены. Новые версии скачиваются в фоне и проверяются по SHA-256. Ядра переключаются при следующем запуске; RelayDesk устанавливается при закрытии и запускается снова. Работающие подключения во время загрузки сохраняются." Style="{StaticResource Caption}" Margin="0,8,0,0" />
+        <TextBlock Text="Источники закреплены. Новые версии скачиваются в фоне и проверяются по SHA-256. Ядра переключаются при следующем запуске; Tunnelito устанавливается при закрытии и запускается снова. Работающие подключения во время загрузки сохраняются." Style="{StaticResource Caption}" Margin="0,8,0,0" />
         <WrapPanel Margin="0,18,0,16">
          <Button x:Name="CheckUpdatesButton" Content="Проверить обновления" Click="CheckUpdatesClick" />
          <Button x:Name="InstallRequiredButton" Content="Установить недостающие ядра" Click="InstallRequiredComponentsClick" Margin="8,0,0,0" Style="{StaticResource Primary}" />
@@ -600,15 +600,15 @@
         <TextBlock x:Name="OtherUpdateStatus" Style="{StaticResource Caption}" Margin="0,8,0,0"/>
         <Border Style="{StaticResource Panel}" Margin="0,14,0,16">
          <StackPanel>
-          <TextBlock Text="RelayDesk" FontSize="19" FontWeight="SemiBold"/>
+          <TextBlock Text="Tunnelito" FontSize="19" FontWeight="SemiBold"/>
           <TextBlock Text="GitHub-репозиторий релизов" Style="{StaticResource Label}"/>
-          <TextBox x:Name="AppRepository" IsReadOnly="True" ToolTip="Закреплённый источник RelayDesk"/>
+          <TextBox x:Name="AppRepository" IsReadOnly="True" ToolTip="Закреплённый источник Tunnelito"/>
           <TextBlock x:Name="AppUpdateStatus" Text="Версия не проверена" TextWrapping="Wrap" Margin="0,12,0,10"/>
           <StackPanel x:Name="AppNotesPanel" Visibility="Collapsed">
            <Expander Header="Что изменилось" IsExpanded="False"><TextBlock x:Name="AppReleaseNotes" TextWrapping="Wrap" Margin="0,12,0,12"/></Expander>
-           <Button x:Name="InstallAppButton" Content="Установить RelayDesk" Click="InstallAppClick" IsEnabled="False" HorizontalAlignment="Left" Style="{StaticResource Primary}" Margin="0,12,0,0"/>
+           <Button x:Name="InstallAppButton" Content="Установить Tunnelito" Click="InstallAppClick" IsEnabled="False" HorizontalAlignment="Left" Style="{StaticResource Primary}" Margin="0,12,0,0"/>
           </StackPanel>
-          <TextBlock Text="Источник RelayDesk нельзя изменить. Подтверждение в приложении не требуется; Windows может показать системный запрос прав администратора. Профили сохраняются." Style="{StaticResource Caption}" Margin="0,12,0,0"/>
+          <TextBlock Text="Источник Tunnelito нельзя изменить. Подтверждение в приложении не требуется; Windows может показать системный запрос прав администратора. Профили сохраняются." Style="{StaticResource Caption}" Margin="0,12,0,0"/>
          </StackPanel>
         </Border>
         <Grid>
@@ -640,7 +640,7 @@
           </StackPanel>
          </Border>
         </Grid>
-        <TextBlock Text="Источники: SagerNet/sing-box и релизы Flowseal/zapret-discord-youtube на GitHub. Проверяется SHA-256 архивов. Для внешнего zapret версия Flowseal неизвестна: предлагается переход на выбранный релиз. BAT-скрипты не запускаются; параметры RelayDesk сохраняются." Style="{StaticResource Caption}" Margin="0,16,0,0" />
+        <TextBlock Text="Источники: SagerNet/sing-box и релизы Flowseal/zapret-discord-youtube на GitHub. Проверяется SHA-256 архивов. Для внешнего zapret версия Flowseal неизвестна: предлагается переход на выбранный релиз. BAT-скрипты не запускаются; параметры Tunnelito сохраняются." Style="{StaticResource Caption}" Margin="0,16,0,0" />
        </StackPanel>
       </ScrollViewer>
      </DockPanel>
@@ -663,7 +663,7 @@
        <TextBox x:Name="ConnectionFilter" TextChanged="ConnectionFilterChanged" ToolTip="Фильтр: Discord, vesktop, домен, маршрут" />
       </DockPanel>
       <StackPanel Grid.Row="2" Margin="0,0,0,12">
-       <TextBlock x:Name="ConnectionsStatus" Text="Запусти sing-box, Xray или mihomo в RelayDesk." Style="{StaticResource Caption}"/>
+       <TextBlock x:Name="ConnectionsStatus" Text="Запусти sing-box, Xray или mihomo в Tunnelito." Style="{StaticResource Caption}"/>
        <TextBlock Text="Нажми на адрес, чтобы настроить маршрут. В sing-box также доступен выбор приложения. Сортировка сохраняется при обновлении списка." Style="{StaticResource Caption}" Margin="0,6,0,0"/>
        <TextBlock x:Name="ConnectionActionStatus" TextWrapping="Wrap" Margin="0,8,0,0"/>
       </StackPanel>

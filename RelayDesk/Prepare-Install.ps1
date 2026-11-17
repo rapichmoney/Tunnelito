@@ -1,4 +1,4 @@
-param([string]$ResultFile,[string]$ResumeToken='', [string]$DataFolder='', [int]$OnlyProcessId=0)
+﻿param([string]$ResultFile,[string]$ResumeToken='', [string]$DataFolder='', [int]$OnlyProcessId=0)
 $ErrorActionPreference='Stop'
 if(!$DataFolder){$DataFolder=$env:RELAYDESK_DATA_DIR;if(!$DataFolder){$DataFolder=Join-Path $env:LOCALAPPDATA 'RelayDesk'}}
 New-Item -ItemType Directory -Path $DataFolder -Force | Out-Null
@@ -7,7 +7,7 @@ if($ResumeToken -and $ResumeToken -notmatch '^[a-fA-F0-9]{32}$'){throw 'Invalid 
 if($ResultFile){[IO.File]::WriteAllText($ResultFile,'')}
 $identity=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $sessionId=(Get-Process -Id $PID).SessionId
-$ownedApps=@(Get-CimInstance Win32_Process -Filter "Name='RelayDesk.exe'" | Where-Object {
+$ownedApps=@(Get-CimInstance Win32_Process -Filter "Name='RelayDesk.exe' OR Name='Tunnelito.exe'" | Where-Object {
  if($_.SessionId -ne $sessionId){return $false}
  $owner=Invoke-CimMethod -InputObject $_ -MethodName GetOwnerSid
  return $owner.Sid -eq $identity
@@ -56,7 +56,7 @@ public static class RelayDeskCloseWindow {
  [DllImport("user32.dll")]static extern uint GetWindowThreadProcessId(IntPtr h,out uint p);
  [DllImport("user32.dll",CharSet=CharSet.Unicode)]static extern int GetWindowText(IntPtr h,StringBuilder s,int n);
  [DllImport("user32.dll")]static extern bool PostMessage(IntPtr h,uint m,IntPtr w,IntPtr l);
- public static void Close(uint process) { EnumWindows((h,l)=>{uint p;GetWindowThreadProcessId(h,out p);var title=new StringBuilder(512);GetWindowText(h,title,512);if(p==process&&title.ToString().StartsWith("RelayDesk"))PostMessage(h,0x0010,IntPtr.Zero,IntPtr.Zero);return true;},IntPtr.Zero); }
+ public static void Close(uint process) { EnumWindows((h,l)=>{uint p;GetWindowThreadProcessId(h,out p);var title=new StringBuilder(512);GetWindowText(h,title,512);if(p==process&&(title.ToString().StartsWith("RelayDesk")||title.ToString().StartsWith("Tunnelito")))PostMessage(h,0x0010,IntPtr.Zero,IntPtr.Zero);return true;},IntPtr.Zero); }
 }
 '@
   $pending=Join-Path $DataFolder 'pending-app-update.json'

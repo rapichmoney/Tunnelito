@@ -80,7 +80,7 @@ public sealed class EngineSession(Store store, Action<string> log)
     }
     public Task StartZapret() => Transition(ProxyRunning ? ActiveProfile : null, true);
     public Task SwitchProfile(Profile profile) => Transition(profile,ZapretRunning);
-    public Task Reconfigure(Profile profile) => ProxyRunning && ActiveProfile?.Id == profile.Id ? Transition(profile, ZapretRunning) : throw new InvalidOperationException("Профиль сейчас не запущен в RelayDesk.");
+    public Task Reconfigure(Profile profile) => ProxyRunning && ActiveProfile?.Id == profile.Id ? Transition(profile, ZapretRunning) : throw new InvalidOperationException("Профиль сейчас не запущен в Tunnelito.");
     public Task StopProxy() => Transition(null, ZapretRunning);
     public Task StopZapret() => Transition(ProxyRunning ? ActiveProfile : null, false);
     public Task StopAll() => Transition(null, false);
@@ -125,19 +125,19 @@ public sealed class EngineSession(Store store, Action<string> log)
         var effective = RuntimePolicy.Settings(settings, mode);
         var network=p==null?null:SharedConnection.Effective(p,settings);
         bool rawTun = p != null && SharedRouting.NeedsTun(p,settings) || network is { Managed: false, Core: "sing-box" } && (effective.DiscordSplit || (JsonTools.Object(network.Config)["inbounds"] as System.Text.Json.Nodes.JsonArray)?.Any(n => JsonTools.Text(n?["type"]) == "tun") == true);
-        if ((zapret || rawTun || network != null && (network.Managed && network.Tun || effective.DiscordSplit)) && !IsAdmin()) throw new InvalidOperationException("Для zapret / TUN запусти RelayDesk от имени администратора.");
+        if ((zapret || rawTun || network != null && (network.Managed && network.Tun || effective.DiscordSplit)) && !IsAdmin()) throw new InvalidOperationException("Для zapret / TUN запусти Tunnelito от имени администратора.");
         if (p != null)
         {
             ValidateExecutable(Executable(p, settings), p.Core);
             var proxy = JsonTools.LocalProxy(network!); if (network!.SystemProxy && proxy.Scheme != "http") throw new InvalidOperationException("Для системного прокси нужен HTTP / mixed-вход.");
             if (HasLocalInput(network) && (!ProxyRunning || ActiveProxy?.Port != proxy.Port) && IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(x => x.Port == proxy.Port))
             {
-                log($"Порт {proxy.Port} занят. Проверяю оставшиеся процессы RelayDesk перед подключением.");
+                log($"Порт {proxy.Port} занят. Проверяю оставшиеся процессы Tunnelito перед подключением.");
                 CoreRecovery.Recover(store, log);
                 if (IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(x => x.Port == proxy.Port))
                 {
                     var owner = CoreRecovery.PortOwner(proxy.Port);
-                    throw new InvalidOperationException($"Порт {proxy.Port} занят: {(owner.Length > 0 ? owner : "владелец не определён")}. Зависший процесс RelayDesk не найден или не удалось его завершить. Отключи подключение в приложении-владельце либо измени порт входа.");
+                    throw new InvalidOperationException($"Порт {proxy.Port} занят: {(owner.Length > 0 ? owner : "владелец не определён")}. Зависший процесс Tunnelito не найден или не удалось его завершить. Отключи подключение в приложении-владельце либо измени порт входа.");
                 }
                 log($"Порт {proxy.Port} освобождён. Продолжаю подключение VPN.");
             }

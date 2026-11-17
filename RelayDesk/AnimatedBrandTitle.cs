@@ -1,81 +1,51 @@
-using System.Diagnostics;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Automation.Peers;
+using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Threading;
-
+using System.Windows.Media.Animation;
 namespace RelayDesk;
-
-public sealed class AnimatedBrandTitle : FrameworkElement
+public sealed class AnimatedBrandTitle : Grid
 {
-    const string Brand="RelayDesk";
-    readonly Stopwatch time=new();
-    readonly RelayDesk.Orbit.CompositorLoop frames;
-    readonly Typeface typeface=new(new FontFamily("Segoe UI"),FontStyles.Normal,FontWeights.SemiBold,FontStretches.Normal);
-    readonly SolidColorBrush ink=new(Color.FromRgb(236,238,242));
-    FormattedText[] letters=[];
-    double[] positions=[],advances=[];
-    double cachedDpi;
-    bool enabled=true;
-    Window? owner;
-    public int FrameCount=>frames.Count;
-    public bool AnimationEnabled {get=>enabled;set{enabled=value;Playback();}}
+    readonly TextBlock current=new(){Text=BrandIdentity.Name,FontSize=24,FontWeight=FontWeights.SemiBold,Foreground=new SolidColorBrush(Color.FromRgb(236,238,242)),VerticalAlignment=VerticalAlignment.Center};
+    readonly TextBlock previous=new(){Text="RelayDesk",FontSize=24,FontWeight=FontWeights.SemiBold,Foreground=new SolidColorBrush(Color.FromRgb(236,238,242)),VerticalAlignment=VerticalAlignment.Center,Visibility=Visibility.Collapsed};
+    readonly RouteMark mark=new(){Width=30,Height=30,VerticalAlignment=VerticalAlignment.Center};
+    bool motion=true,shown;
+    public bool IntroductionPlayed{get;private set;}
+    public int FrameCount{get;private set;}
+    public bool AnimationEnabled {get=>motion;set{motion=value;if(!value)Finish();}}
     public AnimatedBrandTitle()
     {
-        Width=148;Height=34;IsHitTestVisible=false;
-        frames=new RelayDesk.Orbit.CompositorLoop((_,_)=>InvalidateVisual());
-        Loaded+=(_,_)=>{owner=Window.GetWindow(this);if(owner!=null)owner.StateChanged+=OwnerChanged;Playback();};
-        Unloaded+=(_,_)=>{frames.SetRunning(false);time.Stop();if(owner!=null)owner.StateChanged-=OwnerChanged;owner=null;};
-        IsVisibleChanged+=(_,_)=>Playback();
+        Width=178;Height=34;IsHitTestVisible=false;
+        ColumnDefinitions.Add(new(){Width=new GridLength(30)});ColumnDefinitions.Add(new(){Width=new GridLength(10)});ColumnDefinitions.Add(new());
+        Children.Add(mark);SetColumn(previous,2);SetColumn(current,2);Children.Add(previous);Children.Add(current);
+        current.RenderTransform=new TranslateTransform();previous.RenderTransform=new TranslateTransform();
     }
-    void OwnerChanged(object? sender,EventArgs e)=>Playback();
-    void Playback()
+    public void Present(bool upgrade)
     {
-        if(enabled&&IsLoaded&&IsVisible&&owner?.WindowState!=WindowState.Minimized){time.Start();frames.SetRunning(true);}
-        else{time.Stop();frames.SetRunning(false);}
-        InvalidateVisual();
+        if(shown)return;shown=true;IntroductionPlayed=upgrade;
+        if(!motion||!SystemParameters.ClientAreaAnimation){Finish();return;}
+        if(upgrade)
+        {
+            current.Opacity=0;
+            previous.Visibility=Visibility.Visible;previous.BeginAnimation(OpacityProperty,new DoubleAnimation(1,0,TimeSpan.FromMilliseconds(820)));
+            ((TranslateTransform)previous.RenderTransform).BeginAnimation(TranslateTransform.YProperty,new DoubleAnimation(0,-6,TimeSpan.FromMilliseconds(820)){EasingFunction=new CubicEase{EasingMode=EasingMode.EaseInOut}});
+            var reveal=new DoubleAnimation(0,1,TimeSpan.FromMilliseconds(650)){BeginTime=TimeSpan.FromMilliseconds(200)};reveal.Completed+=(_,_)=>{previous.Visibility=Visibility.Collapsed;FrameCount++;};current.BeginAnimation(OpacityProperty,reveal);
+            ((TranslateTransform)current.RenderTransform).BeginAnimation(TranslateTransform.YProperty,new DoubleAnimation(6,0,TimeSpan.FromMilliseconds(850)){EasingFunction=new CubicEase{EasingMode=EasingMode.EaseOut}});
+            mark.BeginAnimation(OpacityProperty,new DoubleAnimation(0,1,TimeSpan.FromMilliseconds(850)));
+        }
+        else {BeginAnimation(OpacityProperty,new DoubleAnimation(0,1,TimeSpan.FromMilliseconds(220)));current.BeginAnimation(OpacityProperty,null);current.Opacity=1;FrameCount++;}
     }
-    FormattedText Text(string value,Brush brush)=>new(value,CultureInfo.InvariantCulture,FlowDirection.LeftToRight,typeface,24,brush,VisualTreeHelper.GetDpi(this).PixelsPerDip);
-    protected override void OnRender(DrawingContext dc)
+    void Finish()
     {
-        base.OnRender(dc);
-        double dpi=VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        if(letters.Length==0||cachedDpi!=dpi)
-        {cachedDpi=dpi;letters=Brand.Select(c=>Text(c.ToString(),ink)).ToArray();positions=Enumerable.Range(0,Brand.Length+1).Select(i=>i==0?0:Text(Brand[..i],ink).WidthIncludingTrailingWhitespace).ToArray();advances=Enumerable.Range(0,Brand.Length).Select(i=>positions[i+1]-positions[i]).ToArray();}
-        ink.Opacity=1;
-        if(!enabled){dc.DrawText(Text(Brand,ink),new Point(0,1));return;}
-        double t=time.Elapsed.TotalSeconds%14;
-        if(t<.2)ink.Opacity=t/.2;
-        if(t<6.1)
-        {
-            static double Ease(double v){v=Math.Clamp(v,0,1);return v*v*(3-2*v);}
-            double cursor=0;
-            for(int i=0;i<Brand.Length;i++)
-            {
-                double opacity=Ease((t-i*.19)/.19)*(1-Ease((t-3.8-(Brand.Length-1-i)*.14)/.2));
-                dc.PushOpacity(opacity);dc.DrawText(letters[i],new Point(positions[i],1));dc.Pop();
-                cursor+=advances[i]*opacity;
-            }
-            if((t<2||t>=3.8)&&t<5.45)
-            {dc.PushOpacity(.35+.35*(1+Math.Sin(t*Math.PI*2.4))*.5);dc.DrawRectangle(ink,null,new Rect(cursor+3,6,1,22));dc.Pop();}
-            return;
-        }
-        // Second treatment: a staggered appearance followed by one silver light pass.
-        for(int i=0;i<Brand.Length;i++)
-        {
-            double progress=Math.Clamp((t-6.1-i*.065)/.45,0,1);
-            double opacity=progress*progress*(3-2*progress);
-            double outro=Math.Clamp((t-13.3)/.7,0,1);opacity*=1-outro*outro*(3-2*outro);
-            double prefix=positions[i];
-            double light=t>=7.4&&t<=9?Math.Exp(-Math.Pow((i-(t-7.4)/1.6*(Brand.Length+3)+1)/1.35,2)):0;
-            dc.PushOpacity(opacity*(.92+.08*light));dc.DrawText(letters[i],new Point(prefix,1));dc.Pop();
-        }
+        BeginAnimation(OpacityProperty,null);Opacity=1;previous.BeginAnimation(OpacityProperty,null);previous.Visibility=Visibility.Collapsed;
+        current.BeginAnimation(OpacityProperty,null);current.Opacity=1;((TranslateTransform)current.RenderTransform).BeginAnimation(TranslateTransform.YProperty,null);
+        ((TranslateTransform)current.RenderTransform).Y=0;mark.BeginAnimation(OpacityProperty,null);mark.Opacity=1;mark.Motion=false;
     }
+    public void ConnectionState(bool busy,bool running){mark.Motion=motion&&SystemParameters.ClientAreaAnimation;mark.SetState(busy,running);}
     protected override AutomationPeer OnCreateAutomationPeer()=>new BrandPeer(this);
     sealed class BrandPeer(AnimatedBrandTitle owner):FrameworkElementAutomationPeer(owner)
     {
-        protected override string GetNameCore()=>Brand;
+        protected override string GetNameCore()=>BrandIdentity.Name;
         protected override AutomationControlType GetAutomationControlTypeCore()=>AutomationControlType.Text;
     }
 }

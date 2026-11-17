@@ -30,7 +30,7 @@ public partial class Workspace
         if (!ReferenceEquals(e.Source, Tabs) || ShowLog == null) return;
         ShowLog.IsChecked = Tabs.SelectedIndex == 0;
         UpdateLogLayout();
-        if (Tabs.SelectedItem is TabItem tab && PageTitle != null) PageTitle.Text = tab.Header?.ToString() ?? "RelayDesk";
+        if (Tabs.SelectedItem is TabItem tab && PageTitle != null) PageTitle.Text = tab.Header?.ToString() ?? "Tunnelito";
         if (SystemParameters.ClientAreaAnimation)
             Dispatcher.BeginInvoke(new Action(() =>
             {

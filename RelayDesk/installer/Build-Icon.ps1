@@ -6,16 +6,23 @@ $stream = [IO.File]::Create((Join-Path $assets 'RelayDesk.ico'))
 $writer = New-Object IO.BinaryWriter($stream)
 try {
     $images = @()
-    foreach ($size in @(16,32,48,256)) {
+    foreach ($size in @(16,24,32,48,64,128,256)) {
         $bitmap = New-Object Drawing.Bitmap($size,$size)
         $graphics = [Drawing.Graphics]::FromImage($bitmap)
         $graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-        $graphics.Clear([Drawing.ColorTranslator]::FromHtml('#286548'))
+        $graphics.Clear([Drawing.ColorTranslator]::FromHtml('#101318'))
         $graphics.ScaleTransform($size/64.0,$size/64.0)
-        $pen = New-Object Drawing.Pen([Drawing.Color]::White,5)
-        $pen.StartCap = $pen.EndCap = [Drawing.Drawing2D.LineCap]::Square
-        $graphics.DrawLines($pen,[Drawing.PointF[]]@([Drawing.PointF]::new(18,47),[Drawing.PointF]::new(18,17),[Drawing.PointF]::new(38,17),[Drawing.PointF]::new(46,25),[Drawing.PointF]::new(38,33),[Drawing.PointF]::new(20,33)))
-        $graphics.DrawLine($pen,32,33,47,48)
+        $ink=[Drawing.ColorTranslator]::FromHtml('#ECEEF2')
+        $pen = New-Object Drawing.Pen($ink,4)
+        $pen.StartCap = $pen.EndCap = [Drawing.Drawing2D.LineCap]::Round
+        $route=New-Object Drawing.Drawing2D.GraphicsPath
+        $route.AddLine(12,46,24,46);$route.AddBezier(24,46,32,46,32,46,32,38)
+        $route.AddLine(32,38,32,26);$route.AddBezier(32,26,32,18,32,18,40,18);$route.AddLine(40,18,52,18)
+        $graphics.DrawPath($pen,$route)
+        $brush=New-Object Drawing.SolidBrush($ink);$graphics.FillEllipse($brush,7,41,10,10)
+        $dark=New-Object Drawing.SolidBrush([Drawing.ColorTranslator]::FromHtml('#101318'));$graphics.FillEllipse($dark,47,13,10,10)
+        $pen.Width=3;$graphics.DrawEllipse($pen,47,13,10,10)
+        $route.Dispose();$brush.Dispose();$dark.Dispose()
         $memory = New-Object IO.MemoryStream
         $bitmap.Save($memory,[Drawing.Imaging.ImageFormat]::Png)
         $images += ,@($size,$memory.ToArray())

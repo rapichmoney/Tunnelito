@@ -1,4 +1,4 @@
-﻿using System.Configuration;
+using System.Configuration;
 using System.Data;
 using System.Windows;
 
@@ -29,13 +29,13 @@ public partial class App : Application
                 foreach (var argument in e.Args) start.ArgumentList.Add(argument);
                 System.Diagnostics.Process.Start(start);
             }
-            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223) { MessageBox.Show("Запуск отменён: Windows не получила разрешение администратора. Открой RelayDesk снова и подтверди запрос, чтобы использовать TUN и zapret.", "RelayDesk"); }
-            catch (System.ComponentModel.Win32Exception ex) { MessageBox.Show("Не удалось запросить права администратора: " + ex.Message, "RelayDesk"); }
+            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223) { MessageBox.Show("Запуск отменён: Windows не получила разрешение администратора. Открой Tunnelito снова и подтверди запрос, чтобы использовать TUN и zapret.", "Tunnelito"); }
+            catch (System.ComponentModel.Win32Exception ex) { MessageBox.Show("Не удалось запросить права администратора: " + ex.Message, "Tunnelito"); }
             Shutdown(); return;
         }
         var suffix = string.IsNullOrWhiteSpace(isolatedFolder) ? "" : "." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(System.IO.Path.GetFullPath(isolatedFolder).ToUpperInvariant())))[..16];
         instance = new Mutex(true, @"Local\RelayDesk.Desktop" + suffix, out var created);
-        if (!created) { if (!WindowsStartupLaunch) MessageBox.Show("RelayDesk уже открыт. Используй запущенное окно."); Shutdown(); return; }
+        if (!created) { if (!WindowsStartupLaunch) MessageBox.Show("Tunnelito уже открыт. Используй запущенное окно."); Shutdown(); return; }
         if (string.IsNullOrWhiteSpace(isolatedFolder)&&UpdateResumeToken.Length==0)
         {
             try

@@ -94,7 +94,7 @@ public static class PendingUpdates
     public static void ValidateApp(string folder,PendingApp pending)
     {
         var r=pending.Release;
-        if(r.Repository!=AppUpdates.DefaultRepository || !Version.TryParse(r.Version,out _) || r.File.Name!=$"RelayDesk-Setup-{r.Version}-x64.exe" || r.File.Url!=$"https://github.com/{AppUpdates.DefaultRepository}/releases/download/v{r.Version}/{r.File.Name}") throw new InvalidDataException("Источник установщика не совпадает с закреплённым репозиторием.");
+        if(!Version.TryParse(r.Version,out _) || !AppUpdates.TrustedPackage(r.Repository,r.Version,r.File)) throw new InvalidDataException("Источник установщика не совпадает с закреплённым репозиторием.");
         var root=Path.GetFullPath(Path.Combine(folder,"application-updates"))+Path.DirectorySeparatorChar;
         if(!Path.GetFullPath(pending.Installer).StartsWith(root,StringComparison.OrdinalIgnoreCase) || Path.GetFileName(pending.Installer)!=r.File.Name || new FileInfo(pending.Installer).Length!=r.File.Size || !Hash(pending.Installer).Equals(r.File.Hash,StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Проверка отложенного установщика не пройдена.");
     }

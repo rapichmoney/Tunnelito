@@ -25,6 +25,7 @@ public sealed class ModernUiState
 }
 public partial class MainWindow : Window
 {
+    readonly bool hadBrandSettings=File.Exists(Path.Combine(BrandIdentity.DataFolder,"settings.json"));
     readonly Workspace backend;
     readonly ModernUiState state=new();
     readonly DispatcherTimer refresh=new(){Interval=TimeSpan.FromMilliseconds(500)};
@@ -37,11 +38,12 @@ public partial class MainWindow : Window
     [DllImport("dwmapi.dll")]static extern int DwmSetWindowAttribute(IntPtr h,int a,ref int v,int size);
     public MainWindow()
     {
-        App.UseOrbitUi=!legacyUi;InitializeComponent();if(legacyUi)LoadClassicLayout();Title="RelayDesk "+AppUpdates.CurrentVersion;
+        App.UseOrbitUi=!legacyUi;InitializeComponent();if(legacyUi)LoadClassicLayout();Title="Tunnelito "+AppUpdates.CurrentVersion;
         BuildVersion.Text=Title;
         Width=Math.Min(legacyUi?1320:1380,SystemParameters.WorkArea.Width-32);Height=Math.Min(legacyUi?920:900,SystemParameters.WorkArea.Height-32);
         MinWidth=Math.Min(legacyUi?1040:1000,Width);MinHeight=Math.Min(legacyUi?740:680,Height);
         backend=new Workspace();backend.ModernPrepareData();BackendHost.Content=backend;
+        backend.ModernSession.Changed+=()=>Dispatcher.BeginInvoke(RefreshFromBackend);
         backend.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("pack://application:,,,/RelayDesk;component/Theme.xaml")});
         foreach(var pair in new[]{("Page","#101318"),("Surface","#1B1E25"),("Ink","#ECEEF2"),("Muted","#9DA3AF"),("Line","#3D4350"),("Accent","#D2DAE6"),("Selected","#303641"),("Action","#444C59")})backend.Resources[pair.Item1]=new SolidColorBrush((Color)ColorConverter.ConvertFromString(pair.Item2));
         if(backend.ThemeChoice.Parent is FrameworkElement themePanel)themePanel.Visibility=Visibility.Collapsed;
@@ -74,13 +76,14 @@ public partial class MainWindow : Window
     }
     void Ready(object sender,RoutedEventArgs e)
     {
-        ApplyGlass();UpdateCityMotion();BrandTitle.AnimationEnabled=App.Motion;InitializeTray();refresh.Start();FadeIn(Shell,0,180);
+        ApplyGlass();UpdateCityMotion();BrandTitle.AnimationEnabled=App.Motion;BrandTitle.Present(BrandIdentity.ClaimIntroduction(backend.ModernStore,hadBrandSettings));InitializeTray();refresh.Start();FadeIn(Shell,0,180);
     }
     void RefreshFromBackend()
     {
         if(leaving)return;
         var store=backend.ModernStore;var session=backend.ModernSession;
         vpn=session.ProxyRunning;zapret=session.ZapretRunning;vpnBusy=zapretBusy=backend.ModernBusy;
+        BrandTitle.ConnectionState(session.Busy,(session.ProxyRunning||session.ZapretRunning)&&!session.Busy);
         UpdatePowerControl(VpnPower,VpnAction,VpnGlyph,vpn,vpnBusy,"VPN");UpdatePowerControl(ZapretPower,ZapretAction,ZapretGlyph,zapret,zapretBusy,"zapret");
         VpnStatus.Text=vpnBusy?"Выполняется операция…":vpn?store.Settings.RoutingPreset=="direct"?"Трафик напрямую · "+session.ActiveProfile?.Core:"Ядро "+session.ActiveProfile?.Core+" запущено":"Выключен";
         ZapretStatus.Text=zapretBusy?"Выполняется операция…":zapret?"winws запущен":"Выключен";
@@ -247,7 +250,7 @@ public partial class MainWindow : Window
         var p=backend.ModernStore.Settings;p.InterfaceMotion=state.Motion;p.AsciiBackground=state.CityMotion;p.GraphiteGlass=state.Glass;p.QuietMode=state.QuietMode;p.TrayEnabled=state.TrayEnabled;
         try{backend.ModernStore.Save();}catch(Exception ex){Toast(ex.Message);}
     }
-    void Help(object sender,RoutedEventArgs e)=>MessageBox.Show(this,"RelayDesk "+AppUpdates.CurrentVersion+"\n\nVPN и zapret управляются отдельно. Запуск ядра не доказывает доступность сети: используй проверку HTTPS.\n\nПравила общие для всех VPN и групп. Кнопка применения переподключает его.\n\nРасширенные настройки содержат JSON/YAML, подписки, ядра, диагностику и автозапуск.\n\nДанные: "+backend.ModernStore.Folder,"RelayDesk");
+    void Help(object sender,RoutedEventArgs e)=>MessageBox.Show(this,"Tunnelito "+AppUpdates.CurrentVersion+"\n\nVPN и zapret управляются отдельно. Запуск ядра не доказывает доступность сети: используй проверку HTTPS.\n\nПравила общие для всех VPN и групп. Кнопка применения переподключает его.\n\nРасширенные настройки содержат JSON/YAML, подписки, ядра, диагностику и автозапуск.\n\nДанные: "+backend.ModernStore.Folder,"Tunnelito");
     void Minimize(object sender,RoutedEventArgs e)=>HideToTray();
     void Maximize(object sender,RoutedEventArgs e)=>WindowState=WindowState==WindowState.Maximized?WindowState.Normal:WindowState.Maximized;
     void ClosePreview(object sender,RoutedEventArgs e)=>Close();

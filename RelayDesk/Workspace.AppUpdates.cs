@@ -12,17 +12,17 @@ public partial class Workspace
     void InitializeAppUpdates()
     {
         AppRepository.Text = EffectiveAppRepository; AppRepository.IsReadOnly = true;
-        if (string.IsNullOrWhiteSpace(EffectiveAppRepository)) AppUpdateStatus.Text = "Репозиторий не указан. Проверка обновлений RelayDesk пока отключена.";
+        if (string.IsNullOrWhiteSpace(EffectiveAppRepository)) AppUpdateStatus.Text = "Репозиторий не указан. Проверка обновлений Tunnelito пока отключена.";
     }
     async Task<bool> CheckAppUpdates(CancellationToken cancellation)
     {
         appRelease = null; AppReleaseBanner.Visibility = AppNotesPanel.Visibility = Visibility.Collapsed;
-        if (string.IsNullOrWhiteSpace(EffectiveAppRepository)) { AppUpdateStatus.Text = "Репозиторий не указан. Проверка обновлений RelayDesk пока отключена."; return true; }
+        if (string.IsNullOrWhiteSpace(EffectiveAppRepository)) { AppUpdateStatus.Text = "Репозиторий не указан. Проверка обновлений Tunnelito пока отключена."; return true; }
         try
         {
             appRelease = await new AppUpdates().Check(EffectiveAppRepository, AppUpdates.CurrentVersion, cancellation);
             AppUpdateStatus.Text = appRelease.Available ? "Доступна версия " + appRelease.Version : "Установлена актуальная версия " + AppUpdates.CurrentVersion;
-            var heading = "RelayDesk " + appRelease.Version;
+            var heading = "Tunnelito " + appRelease.Version;
             AppReleaseTitle.Text = appRelease.Title.Equals(heading, StringComparison.OrdinalIgnoreCase) ? heading : heading + " — " + appRelease.Title;
             AppReleaseSummary.Text = AppUpdates.PlainText(appRelease.Notes, 220);
             AppReleaseNotes.Text = appRelease.Notes.Length > 0 ? appRelease.Notes : "Описание изменений не опубликовано.";
@@ -41,7 +41,7 @@ public partial class Workspace
             }
             return true;
         }
-        catch (Exception ex) when (!cancellation.IsCancellationRequested) { AppUpdateStatus.Text = "Не удалось проверить RelayDesk: " + ex.Message; AppNotesPanel.Visibility = Visibility.Collapsed; return false; }
+        catch (Exception ex) when (!cancellation.IsCancellationRequested) { AppUpdateStatus.Text = "Не удалось проверить Tunnelito: " + ex.Message; AppNotesPanel.Visibility = Visibility.Collapsed; return false; }
     }
     void SaveAppRepositoryClick(object sender, RoutedEventArgs e) => Safe(async () =>
     {
@@ -52,8 +52,8 @@ public partial class Workspace
     void InstallAppClick(object sender, RoutedEventArgs e) => Safe(async () =>
     {
         if (updatesBusy || installingUpdate || session.Busy || automationBusy || closing) throw new InvalidOperationException("Дождись завершения текущей операции.");
-        if (appRelease?.Available != true) throw new InvalidOperationException("Сначала проверь обновления RelayDesk.");
-        if (HasChanges()) throw new InvalidOperationException("Сохрани изменения профиля перед обновлением RelayDesk.");
+        if (appRelease?.Available != true) throw new InvalidOperationException("Сначала проверь обновления Tunnelito.");
+        if (HasChanges()) throw new InvalidOperationException("Сохрани изменения профиля перед обновлением Tunnelito.");
         var release = appRelease;
         updatesBusy = installingUpdate = true; RefreshUpdateButtons(); UpdateStatus();
         Tabs.SelectedIndex = 6;
@@ -76,7 +76,7 @@ public partial class Workspace
             { start.ArgumentList.Add("-InstallDirectory"); start.ArgumentList.Add(installed); }
             using var process = Process.Start(start) ?? throw new InvalidOperationException("Не удалось запустить помощник установки.");
             updateClosing=true;
-            AppUpdateStatus.Text = "Установщик проверен. Закрываю RelayDesk для обновления.";
+            AppUpdateStatus.Text = "Установщик проверен. Закрываю Tunnelito для обновления.";
             // ClosingWindow waits for updatesBusy before stopping the owned cores.
             updatesBusy = installingUpdate = false;
             Window.GetWindow(this).Close();

@@ -23,7 +23,7 @@ public sealed class SubscriptionWindow : ThemedWindow
         panel.Children.Add(new TextBlock { Text = "Группа для новых серверов", Style = (Style)FindResource("Label") });
         var name = new TextBox { Text = initialGroup }; panel.Children.Add(name);
         var device = new CheckBox { Content = "Отправлять постоянный идентификатор устройства (HWID)", IsChecked = true }; panel.Children.Add(device);
-        panel.Children.Add(new TextBlock { Text = "Нужен некоторым провайдерам. Добавление подписки может занять место в лимите устройств. RelayDesk сохраняет один идентификатор и не меняет его при обновлениях.", Style = (Style)FindResource("Caption"), Margin = new Thickness(0,8,0,0) });
+        panel.Children.Add(new TextBlock { Text = "Нужен некоторым провайдерам. Добавление подписки может занять место в лимите устройств. Tunnelito сохраняет один идентификатор и не меняет его при обновлениях.", Style = (Style)FindResource("Caption"), Margin = new Thickness(0,8,0,0) });
         panel.Children.Add(new TextBlock { Text = "Ссылка сохраняется локально. Обновление не переподключает работающий VPN. Отсутствующие в ответе серверы автоматически не удаляются.", Style = (Style)FindResource("Caption"), Margin = new Thickness(0,14,0,0) });
         saved.SelectionChanged += (_,_) => { if (saved.SelectedItem is SubscriptionSource s) { address.Text = s.Url; name.Text = s.Group; device.IsChecked = s.SendDeviceId; } };
         if (initialUrl.Length == 0 && existing.Length > 0) saved.SelectedItem = existing.FirstOrDefault(s => s.Group == initialGroup) ?? existing[0];

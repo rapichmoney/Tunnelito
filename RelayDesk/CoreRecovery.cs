@@ -78,7 +78,7 @@ public static class CoreRecovery
         {
             using var process = Process.GetProcessById(candidate.ProcessId);
             if (!string.Equals(process.MainModule?.FileName, candidate.ExecutablePath, StringComparison.OrdinalIgnoreCase) || Math.Abs(process.StartTime.ToUniversalTime().Ticks - candidate.StartedTicks) > TimeSpan.TicksPerMillisecond) return false;
-            process.Kill(true); process.WaitForExit(5000); log("Завершён оставшийся от прежнего RelayDesk процесс PID " + candidate.ProcessId + "."); return true;
+            process.Kill(true); process.WaitForExit(5000); log("Завершён оставшийся от прежнего Tunnelito процесс PID " + candidate.ProcessId + "."); return true;
         }
         var sing = store.Settings.Engines.GetValueOrDefault("sing-box", "");
         bool ComponentPath(Candidate candidate, string id, string configured) => !string.IsNullOrEmpty(candidate.ExecutablePath) && (string.Equals(candidate.ExecutablePath, configured, StringComparison.OrdinalIgnoreCase) || Path.GetFullPath(candidate.ExecutablePath).StartsWith(Path.Combine(store.Folder, "components", id) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));

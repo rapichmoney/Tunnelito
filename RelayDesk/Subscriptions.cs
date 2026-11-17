@@ -61,7 +61,7 @@ public static class Subscriptions
                     request.Headers.Add("x-hwid", DeviceId(installationId, uri.IdnHost));
                     request.Headers.Add("x-device-os", "Windows");
                     request.Headers.Add("x-ver-os", Environment.OSVersion.Version.ToString());
-                    request.Headers.Add("x-device-model", "RelayDesk Desktop");
+                    request.Headers.Add("x-device-model", "Tunnelito Desktop");
                 }
                 using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
                 string Header(string name) => response.Headers.TryGetValues(name, out var values) ? values.FirstOrDefault() ?? "" : "";

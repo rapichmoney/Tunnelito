@@ -16,7 +16,7 @@ public static class StartupRegistration
         XNamespace ns = "http://schemas.microsoft.com/windows/2004/02/mit/task";
         XElement E(string name, object value) => new(ns + name, value);
         return new XElement(ns + "Task", new XAttribute("version", "1.2"),
-            E("RegistrationInfo", E("Description", "Запуск RelayDesk при входе пользователя в Windows")),
+            E("RegistrationInfo", E("Description", "Запуск Tunnelito при входе пользователя в Windows")),
             E("Triggers", E("LogonTrigger", new object[] { E("Enabled", true), E("UserId", userSid), E("Delay", "PT15S") })),
             E("Principals", new XElement(ns + "Principal", new XAttribute("id", "Author"), E("UserId", userSid), E("LogonType", "InteractiveToken"), E("RunLevel", "HighestAvailable"))),
             E("Settings", new object[] { E("MultipleInstancesPolicy", "IgnoreNew"), E("DisallowStartIfOnBatteries", false), E("StopIfGoingOnBatteries", false), E("StartWhenAvailable", true), E("Enabled", true), E("ExecutionTimeLimit", "PT0S") }),

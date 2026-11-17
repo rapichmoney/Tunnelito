@@ -1,25 +1,28 @@
 #ifndef AppVersion
- #define AppVersion "0.30.3"
+ #define AppVersion "0.32.0"
 #endif
 #ifndef PublishDir
- #define PublishDir "..\release\0.30.3"
+ #define PublishDir "..\release\0.32.0"
 #endif
 #ifdef TestBuild
- #define ProductName "RelayDesk Installer QA"
+ #define ProductName "Tunnelito Installer QA"
  #define ProductId "RelayDesk-Installer-QA-4F386E9C"
- #define SetupName "RelayDesk-Setup-QA"
+ #define SetupName "Tunnelito-Setup-QA"
 #else
- #define ProductName "RelayDesk"
+ #define ProductName "Tunnelito"
  #define ProductId "RelayDesk-Desktop-A7B02E29-4D16-47F0-B8F3-3B829E1F024D"
- #define SetupName "RelayDesk-Setup-" + AppVersion + "-x64"
+ #define SetupName "Tunnelito-Setup-" + AppVersion + "-x64"
 #endif
 
 [Setup]
 AppId={#ProductId}
 AppName={#ProductName}
 AppVersion={#AppVersion}
-AppPublisher=RelayDesk
-VersionInfoDescription=Установка RelayDesk
+AppPublisher=Tunnelito
+VersionInfoDescription=Установка Tunnelito
+AppPublisherURL=https://github.com/rapichmoney/Tunnelito
+AppSupportURL=https://github.com/rapichmoney/Tunnelito/issues
+AppUpdatesURL=https://github.com/rapichmoney/Tunnelito/releases
 DefaultDirName={autopf}\{#ProductName}
 DefaultGroupName={#ProductName}
 DisableProgramGroupPage=yes
@@ -37,7 +40,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=..\Assets\RelayDesk.ico
-UninstallDisplayIcon={app}\RelayDesk.exe
+UninstallDisplayIcon={app}\Tunnelito.exe
 UninstallDisplayName={#ProductName}
 CloseApplications=no
 RestartApplications=no
@@ -60,27 +63,43 @@ Source: "{#PublishDir}\Prepare-Install.ps1"; Flags: dontcopy
 
 [Icons]
 #ifndef TestBuild
-Name: "{group}\RelayDesk"; Filename: "{app}\RelayDesk.exe"; WorkingDir: "{app}"
-Name: "{autodesktop}\RelayDesk"; Filename: "{app}\RelayDesk.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{commonprograms}\Tunnelito\Tunnelito"; Filename: "{app}\Tunnelito.exe"; WorkingDir: "{app}"
+Name: "{autodesktop}\Tunnelito"; Filename: "{app}\Tunnelito.exe"; WorkingDir: "{app}"; Check: WantDesktopShortcut
+#endif
+
+[InstallDelete]
+#ifndef TestBuild
+Type: files; Name: "{commonprograms}\RelayDesk\RelayDesk.lnk"
+Type: dirifempty; Name: "{commonprograms}\RelayDesk"
+Type: files; Name: "{userprograms}\RelayDesk\RelayDesk.lnk"
+Type: dirifempty; Name: "{userprograms}\RelayDesk"
+Type: files; Name: "{autodesktop}\RelayDesk.lnk"
 #endif
 
 [Run]
 #ifndef TestBuild
-Filename: "{app}\RelayDesk.exe"; Parameters: "--resume-update {code:GetResumeToken}"; Flags: nowait; Check: ShouldResume; AfterInstall: MarkResumed
-Filename: "{app}\RelayDesk.exe"; Description: "Запустить RelayDesk"; Flags: nowait postinstall skipifsilent runasoriginaluser; Check: NormalLaunch
+Filename: "{app}\Tunnelito.exe"; Parameters: "--resume-update {code:GetResumeToken}"; Flags: nowait; Check: ShouldResume; AfterInstall: MarkResumed
+Filename: "{app}\Tunnelito.exe"; Description: "Запустить Tunnelito"; Flags: nowait postinstall skipifsilent runasoriginaluser; Check: NormalLaunch
 #endif
 
 [UninstallRun]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Remove-Startup.ps1"" -Executable ""{app}\RelayDesk.exe"""; Flags: runhidden; RunOnceId: "RemoveRelayDeskStartup"
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Remove-Startup.ps1"" -Executable ""{app}\Tunnelito.exe"""; Flags: runhidden; RunOnceId: "RemoveTunnelitoStartup"
 
 [Messages]
-russian.WelcomeLabel2=Установщик разместит RelayDesk и ядра sing-box, Xray, mihomo и Flowseal/zapret в Program Files.%n%nЯдра включены в пакет и не требуют отдельной загрузки. При первом запуске импортируй профиль или подписку. Существующие профили сохраняются в данных пользователя.
+russian.WelcomeLabel2=Установщик разместит Tunnelito и ядра sing-box, Xray, mihomo и Flowseal/zapret в Program Files.%n%nЯдра включены в пакет. Существующие профили RelayDesk сохраняются в прежней папке данных.
 
 [Code]
 var
   ResumeToken: String;
   Prepared: Boolean;
   Resumed: Boolean;
+  HadDesktopShortcut: Boolean;
+
+function WantDesktopShortcut: Boolean;
+begin
+  Result := HadDesktopShortcut or WizardIsTaskSelected('desktopicon');
+end;
 
 function GetResumeToken(Param: String): String;
 begin
@@ -110,6 +129,7 @@ var
 begin
   Result := '';
   if Prepared then Exit;
+  HadDesktopShortcut := FileExists(ExpandConstant('{autodesktop}\RelayDesk.lnk')) or FileExists(ExpandConstant('{autodesktop}\Tunnelito.lnk'));
 #ifdef TestBuild
 #ifndef HandoffTestBuild
   Prepared := True;
@@ -129,9 +149,9 @@ begin
 #endif
   if ResumeToken <> '' then Args := Args + ' -ResumeToken "' + ResumeToken + '"';
   if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Args, '', SW_HIDE, ewWaitUntilTerminated, ExitCode) then
-    Result := 'Не удалось подготовить RelayDesk к обновлению.'
+    Result := 'Не удалось подготовить Tunnelito к обновлению.'
   else if ExitCode <> 0 then
-    Result := 'RelayDesk не завершил подготовку. Сохрани текущую операцию и повтори установку.'
+    Result := 'Приложение не завершило подготовку. Сохрани текущую операцию и повтори установку.'
   else if LoadStringFromFile(ExpandConstant('{tmp}\resume-token.txt'), TokenText) then
   begin
     ResumeToken := String(TokenText);
@@ -144,6 +164,6 @@ procedure DeinitializeSetup;
 var
   ExitCode: Integer;
 begin
-  if Prepared and (not Resumed) and ShouldResume and FileExists(ExpandConstant('{app}\RelayDesk.exe')) then
-    Exec(ExpandConstant('{app}\RelayDesk.exe'), '--resume-update ' + ResumeToken, ExpandConstant('{app}'), SW_SHOWNORMAL, ewNoWait, ExitCode);
+  if Prepared and (not Resumed) and ShouldResume and FileExists(ExpandConstant('{app}\Tunnelito.exe')) then
+    Exec(ExpandConstant('{app}\Tunnelito.exe'), '--resume-update ' + ResumeToken, ExpandConstant('{app}'), SW_SHOWNORMAL, ewNoWait, ExitCode);
 end;

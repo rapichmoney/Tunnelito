@@ -18,7 +18,7 @@ public static class TunRuntime
                 var candidate=$"172.{second}.{third}.1/30";
                 if(!networks.Any(n=>RuleMatching.NetworkContains(n,candidate)||RuleMatching.NetworkContains(candidate,n)))return candidate;
             }
-        throw new InvalidOperationException("Не найдена свободная подсеть для TUN RelayDesk.");
+        throw new InvalidOperationException("Не найдена свободная подсеть для TUN Tunnelito.");
     }
     public static string Configure(string config,IEnumerable<string>? occupied=null,string? interfacePrefix=null)
     {

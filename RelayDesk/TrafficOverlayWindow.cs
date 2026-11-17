@@ -15,7 +15,7 @@ public sealed class TrafficOverlayWindow:Window,ITrafficOverlay
     readonly Action<double,double> moved;
     public TrafficOverlayWindow(Action<double,double> moved,Action settings,Action hide,Action<OverlayDrop>? dropped=null,Action? scanQr=null)
     {
-        this.moved=moved;Title="RelayDesk · Скорость VPN";WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;ShowActivated=false;SizeToContent=SizeToContent.Height;Width=244;
+        this.moved=moved;Title="Tunnelito · Скорость VPN";WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;Topmost=true;ShowInTaskbar=false;ShowActivated=false;SizeToContent=SizeToContent.Height;Width=244;
         Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("pack://application:,,,/RelayDesk;component/ModernTheme.xaml")});
         FontFamily=new FontFamily("Segoe UI");Foreground=new SolidColorBrush(Color.FromRgb(236,238,242));UseLayoutRounding=true;
         var panel=new StackPanel();name.Margin=new Thickness(0,0,0,8);panel.Children.Add(name);panel.Children.Add(download);panel.Children.Add(upload);
@@ -31,7 +31,7 @@ public sealed class TrafficOverlayWindow:Window,ITrafficOverlay
         if(scanQr!=null){var scan=new MenuItem{Header="Считать QR-код с экрана"};scan.Click+=(_,_)=>scanQr();menu.Items.Insert(0,scan);}
         SourceInitialized+=(_,_)=>{var handle=new WindowInteropHelper(this).Handle;var style=GetWindowLong(handle,-20);SetWindowLong(handle,-20,style|0x08000000|0x80);};
         Closed+=(_,_)=>sharks.AnimationEnabled=false;
-        Update("VPN выключен",null,"Включи VPN в RelayDesk.");
+        Update("VPN выключен",null,"Включи VPN в Tunnelito.");
     }
     [System.Runtime.InteropServices.DllImport("user32.dll")]static extern int GetWindowLong(IntPtr handle,int index);
     [System.Runtime.InteropServices.DllImport("user32.dll")]static extern int SetWindowLong(IntPtr handle,int index,int value);

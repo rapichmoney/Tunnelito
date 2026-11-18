@@ -31,6 +31,7 @@ public class Profile
 public class Preferences
 {
     public int BrandingVersion {get;set;}
+    public OriginLocation? OriginLocation {get;set;}
     public bool InterfaceMotion { get; set; } = true;
     public string OrbitBackground {get;set;}="earth";
     public string UiMode {get;set;}="orbit";

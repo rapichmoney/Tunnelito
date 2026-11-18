@@ -40,11 +40,15 @@ public partial class MainWindow
         OrbitIndicator.Fill=new SolidColorBrush(active?Color.FromRgb(117,199,147):Color.FromRgb(119,119,119));
         OrbitModeStatus.Foreground=new SolidColorBrush(active?Color.FromRgb(117,199,147):Color.FromRgb(144,144,144));
         OrbitModeStatus.Text=busy?"Выполняется операция…":!active?"Выключен":orbitComponent=="zapret"?"winws запущен":mode=="tun"?"Запущен · TUN":transport.StartsWith("Локальный",StringComparison.Ordinal)?"Локальный прокси запущен":"Запущен · Прокси";
-        OrbitSelectedCard.ToolTip=orbitComponent=="vpn"?(profile?.Name??"")+"\n"+transport:"Обход DPI без смены IP";
-        var place=OrbitPlace(profile);OrbitSelectedFlag.Code=orbitComponent=="vpn"?place?.Code??"":"";
+        OrbitSelectedCard.ToolTip=orbitComponent=="vpn"?(profile?.Name??"")+"\n"+transport:"Обход DPI без смены IP\n"+originMessage;
+        var place=orbitComponent=="vpn"?OrbitPlace(profile):originLocation?.Place;OrbitSelectedFlag.Code=place?.Code??"";
         OrbitServerGroup.Text=orbitComponent=="vpn"?(profile==null?"":OrbitGroup(profile)):store.Settings.ZapretDiscordOnly?"Discord и правила zapret":"Все подходящие подключения";
-        OrbitScene.Focus(orbitComponent=="vpn"?place:null);OrbitScene.Connected=running;
-        OrbitLocationDescription.Text=place==null?"Страна не определена. Можно выбрать её вручную.":place.Country+" · приблизительно по стране сервера.";
+        OrbitScene.Focus(place,orbitComponent=="zapret");OrbitScene.Connected=active&&!session.Busy;
+        OrbitLocationHeading.Text=orbitComponent=="vpn"?"Расположение сервера":"Исходное подключение";
+        OrbitLocationAction.Content=orbitComponent=="vpn"?"Выбрать страну…":"Обновить положение";
+        OrbitLocationDescription.Text=orbitComponent=="vpn"?place?.Country??"Страна не определена. Можно выбрать её вручную.":place?.Country??originMessage;
+        OrbitLocationDescription.ToolTip=orbitComponent=="vpn"?"На карте отмечена страна выбранного сервера.":"Место определяется по IP обычного подключения. Данные провайдера могут отличаться от фактического положения устройства.";
+        if(orbitComponent=="zapret"&&place==null)OrbitServerGroup.Text=locatingOrigin?"Определяем исходное положение…":"Исходное положение не определено";
         OrbitProxy.Content=profile?.Core=="mihomo"?"Конфиг":"Прокси";
         OrbitProxy.ToolTip=profile?.Core=="mihomo"?"Запустить исходную конфигурацию mihomo":"Включить системный прокси";
         OrbitOff.IsEnabled=!busy;OrbitProxy.IsEnabled=!busy&&profile!=null;OrbitTun.IsEnabled=!busy&&profile?.Core=="sing-box";
@@ -99,10 +103,11 @@ public partial class MainWindow
         try{await backend.ModernSetVpnMode(((Button)sender).Tag.ToString()!);}
         catch(Exception ex){Toast(ex.Message);}finally{orbitRequestBusy=false;RefreshFromBackend();}
     }
-    void OrbitComponentClick(object sender,RoutedEventArgs e){orbitComponent=((Button)sender).Tag.ToString()!;RefreshOrbit();}
+    async void OrbitComponentClick(object sender,RoutedEventArgs e){orbitComponent=((Button)sender).Tag.ToString()!;RefreshOrbit();if(orbitComponent=="zapret")await RefreshOrigin();}
     void OrbitAutoClick(object sender,RoutedEventArgs e){try{backend.ModernAuto(!backend.ModernStore.Settings.AutoServer,backend.ModernStore.Settings.AutoZapret);RefreshFromBackend();}catch(Exception ex){Toast(ex.Message);}}
     void OrbitRevealServer(object sender,RoutedEventArgs e)
     {
+        if(orbitComponent=="zapret"){_=RefreshOrigin(true);return;}
         var profile=backend.ModernSession.ActiveProfile??backend.ModernProfile;if(profile==null){ImportProfiles((Button)sender,e);return;}
         orbitCollapsed.Remove(OrbitGroup(profile));OrbitServerSearch.Clear();RefreshOrbitTree();orbitRows.GetValueOrDefault(profile.Id)?.BringIntoView();
     }
@@ -124,7 +129,7 @@ public partial class MainWindow
     {
         if(legacyUi)return;if(value is not ("earth" or "space" or "ascii" or "none"))value="earth";
         backend.ModernStore.Settings.OrbitBackground=value;OrbitScene.Scene=value is "earth" or "space"?value:"none";OrbitLayer(CityBackdrop,value=="ascii");CityMotionChoice.Visibility=value=="ascii"?Visibility.Visible:Visibility.Collapsed;
-        MaterialLabel.Text=value switch{"earth"=>"Земля · страна приблизительно","space"=>"Космос","ascii"=>"ASCII-акулы",_=>"Чёрный фон"};if(save)Save();UpdateOrbitPlayback();
+        MaterialLabel.Text=value switch{"earth"=>"Земля","space"=>"Космос","ascii"=>"ASCII-акулы",_=>"Чёрный фон"};if(save)Save();UpdateOrbitPlayback();
     }
     void UpdateOrbitPlayback(){if(legacyUi)return;bool animate=App.Motion&&!quiet&&OrbitHome.Visibility==Visibility.Visible;OrbitScene.AnimationEnabled=animate;CityBackdrop.AnimationEnabled=animate&&backend.ModernStore.Settings.AsciiBackground;}
     void OrbitConnectionLayout(object sender,SizeChangedEventArgs e){OrbitScene.ControlInset=Math.Max(240,e.NewSize.Height+54);OrbitScene.InvalidateVisual();}
@@ -141,8 +146,9 @@ public partial class MainWindow
     }
     void OrbitPickCountry(object sender,RoutedEventArgs e)
     {
+        if(orbitComponent=="zapret"){_=RefreshOrigin(true);return;}
         var profile=backend.ModernProfile;if(profile==null){Toast("Выбери сервер.");return;}
-        var window=new ThemedWindow{Title="Страна сервера",Width=460,Height=560,Owner=this,WindowStartupLocation=WindowStartupLocation.CenterOwner};var list=new StackPanel{Margin=new Thickness(24)};window.Content=new ScrollViewer{Content=list};list.Children.Add(new TextBlock{Text="Приблизительное положение по стране. IP-адрес сервера не меняется.",Margin=new Thickness(0,0,0,16)});
+        var window=new ThemedWindow{Title="Страна сервера",Width=460,Height=560,Owner=this,WindowStartupLocation=WindowStartupLocation.CenterOwner};var list=new StackPanel{Margin=new Thickness(24)};window.Content=new ScrollViewer{Content=list};list.Children.Add(new TextBlock{Text="Выбери страну для отображения на карте. IP-адрес сервера не меняется.",Margin=new Thickness(0,0,0,16)});
         foreach(var country in Locations.Countries){var row=new StackPanel{Orientation=Orientation.Horizontal};row.Children.Add(new CountryFlag{Code=country.Code,Margin=new Thickness(0,0,12,0)});row.Children.Add(new TextBlock{Text=country.Country,VerticalAlignment=VerticalAlignment.Center});var pick=new Button{Content=row,HorizontalContentAlignment=HorizontalAlignment.Stretch};pick.Click+=(_,_)=>{backend.ModernStore.Settings.ServerCountries??=new();backend.ModernStore.Settings.ServerCountries[profile.Id]=country.Code;Save();window.Close();RefreshOrbitTree();RefreshOrbit();};list.Children.Add(pick);}window.ShowDialog();
     }
     void OrbitPaint(Control control,DependencyProperty property,string value)

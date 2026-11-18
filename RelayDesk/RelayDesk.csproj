@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.32.0</Version>
-    <InformationalVersion>0.32.0-tunnelito</InformationalVersion>
+    <Version>0.33.0</Version>
+    <InformationalVersion>0.33.0-orbit-country-progress</InformationalVersion>
     <Product>Tunnelito</Product><Title>Tunnelito</Title><AssemblyTitle>Tunnelito</AssemblyTitle><Company>Tunnelito</Company><Description>Tunnelito — VPN и zapret</Description>
     <ApplicationIcon>Assets\RelayDesk.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);installer\**</DefaultItemExcludes>
@@ -24,5 +24,5 @@
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
   </ItemGroup>
 
-<ItemGroup><None Update="Assets\YamlDotNet.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/><None Update="Assets\ZXing.Net.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/></ItemGroup><ItemGroup><EmbeddedResource Include="Orbit\land.geojson" /><EmbeddedResource Include="LegacyLayout.xml" /></ItemGroup><Target Name="TunnelitoBuildHost" AfterTargets="Build" Condition="Exists('$(TargetDir)RelayDesk.exe')"><Copy SourceFiles="$(TargetDir)RelayDesk.exe" DestinationFiles="$(TargetDir)Tunnelito.exe" /></Target>
+<ItemGroup><None Update="Assets\YamlDotNet.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/><None Update="Assets\ZXing.Net.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"/></ItemGroup><ItemGroup><EmbeddedResource Include="Orbit\land.geojson" /><EmbeddedResource Include="Orbit\countries.geojson" /><EmbeddedResource Include="LegacyLayout.xml" /></ItemGroup><Target Name="TunnelitoBuildHost" AfterTargets="Build" Condition="Exists('$(TargetDir)RelayDesk.exe')"><Copy SourceFiles="$(TargetDir)RelayDesk.exe" DestinationFiles="$(TargetDir)Tunnelito.exe" /></Target>
 <Target Name="TunnelitoPublishHost" AfterTargets="Publish" Condition="Exists('$(PublishDir)RelayDesk.exe')"><Copy SourceFiles="$(PublishDir)RelayDesk.exe" DestinationFiles="$(PublishDir)Tunnelito.exe" /></Target></Project>

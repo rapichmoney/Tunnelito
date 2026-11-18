@@ -1,5 +1,7 @@
 # Tunnelito
 
+[GitHub](https://github.com/rapichmoney) · [Написать мне](https://t.me/rapichmoney) · [Telegram-канал](https://t.me/rapichlinkmoney)
+
 VPN-приложение для Windows с отдельным управлением zapret. C# / .NET 9 / WPF. Прежнее название — RelayDesk.
 
 [Скачать установщик](https://github.com/rapichmoney/Tunnelito/releases/latest) · [Сообщить об ошибке](https://github.com/rapichmoney/Tunnelito/issues)

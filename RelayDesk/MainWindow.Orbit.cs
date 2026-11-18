@@ -131,7 +131,7 @@ public partial class MainWindow
         backend.ModernStore.Settings.OrbitBackground=value;OrbitScene.Scene=value is "earth" or "space"?value:"none";OrbitLayer(CityBackdrop,value=="ascii");CityMotionChoice.Visibility=value=="ascii"?Visibility.Visible:Visibility.Collapsed;
         MaterialLabel.Text=value switch{"earth"=>"Земля","space"=>"Космос","ascii"=>"ASCII-акулы",_=>"Чёрный фон"};if(save)Save();UpdateOrbitPlayback();
     }
-    void UpdateOrbitPlayback(){if(legacyUi)return;bool animate=App.Motion&&!quiet&&OrbitHome.Visibility==Visibility.Visible;OrbitScene.AnimationEnabled=animate;CityBackdrop.AnimationEnabled=animate&&backend.ModernStore.Settings.AsciiBackground;}
+    void UpdateOrbitPlayback(){if(legacyUi)return;bool home=!quiet&&OrbitHome.Visibility==Visibility.Visible;bool animate=App.Motion&&home;OrbitScene.IsHitTestVisible=home;OrbitScene.AnimationEnabled=animate;CityBackdrop.AnimationEnabled=animate&&backend.ModernStore.Settings.AsciiBackground;}
     void OrbitConnectionLayout(object sender,SizeChangedEventArgs e){OrbitScene.ControlInset=Math.Max(240,e.NewSize.Height+54);OrbitScene.InvalidateVisual();}
     void OrbitModeTrackChanged(object sender,SizeChangedEventArgs e)=>PositionOrbitMode(!vpn?"off":backend.ModernSession.ActiveTransport.StartsWith("TUN",StringComparison.Ordinal)?"tun":"proxy");
     void PositionOrbitMode(string mode)

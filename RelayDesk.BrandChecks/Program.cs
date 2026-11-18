@@ -57,6 +57,7 @@ static class Program
                 if(mode=="orbit"&&motion)
                 {
                     var scene=(OrbitScene)window.FindName("OrbitScene");Check(scene.SelectedCountry=="NL"&&scene.OutlineVertices>100,"VPN view contains a real Netherlands border mesh");
+                    double initialYaw=scene.CameraYaw;scene.RotateBy(80,20);Check(scene.ManualView&&scene.CameraYaw<initialYaw,"Dragging rotates the globe in the pointer direction");double manualYaw=scene.CameraYaw;Pump(600);Check(Math.Abs(scene.CameraYaw-manualYaw)<.001,"Live state refresh does not reset manual rotation");scene.SetZoom(100);Check(scene.TargetZoom==4,"Zoom has a bounded upper limit");scene.AnimationEnabled=false;Check(scene.Zoom==4,"Reduced motion applies zoom immediately");scene.ZoomToLocation();Check(!scene.ManualView&&scene.Zoom==1,"Double-click action resets zoom and returns to selected location");scene.ZoomToLocation();Check(scene.Zoom==2.4,"Location can be magnified");scene.SetZoom(1);scene.AnimationEnabled=true;
                     Check(!((TextBlock)window.FindName("MaterialLabel")).Text.Contains("приблиз"),"Earth footer has no approximation label");
                     var core=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"RelayDesk","bundled-cores","sing-box","sing-box-1.14.3-windows-amd64","sing-box.exe");
                     if(File.Exists(core))

@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -29,6 +30,12 @@ public sealed class OrbitScene:FrameworkElement
     FormattedText? label,previousLabel;
     string scene="earth";
     bool motion=true,connected,layoutDirty=true,origin;
+    bool dragging,manualView;
+    Point dragPoint;
+    double zoom=1,targetZoom=1;
+    public double Zoom=>zoom;
+    public double TargetZoom=>targetZoom;
+    public bool ManualView=>manualView;
     public bool ShowingOrigin=>origin;
     public string SelectedCountry=>!origin?place?.Code??"":"";
     public int OutlineVertices=>(countryBorder.Geometry as MeshGeometry3D)?.Positions.Count??0;
@@ -59,13 +66,15 @@ public sealed class OrbitScene:FrameworkElement
         get=>motion;set
         {
             if(motion==value)return;motion=value;
-            if(!motion){yaw=toYaw;pitch=toPitch;yawVelocity=pitchVelocity=0;activation=connected?1:0;ink.BeginAnimation(SolidColorBrush.ColorProperty,null);ink.Color=connected?Color.FromRgb(117,199,147):Colors.White;}
+            if(!motion){zoom=targetZoom;yaw=toYaw;pitch=toPitch;yawVelocity=pitchVelocity=0;activation=connected?1:0;ink.BeginAnimation(SolidColorBrush.ColorProperty,null);ink.Color=connected?Color.FromRgb(117,199,147):Colors.White;}
             UpdateRotation();UpdateSceneOpacity();Playback();DrawSignal(loop.Time);
         }
     }
     public OrbitScene()
     {
-        IsHitTestVisible=false;ClipToBounds=true;beam=new Pen(ink,1.3);
+        IsHitTestVisible=true;ClipToBounds=true;beam=new Pen(ink,1.3);
+        ToolTip="Зажми левую кнопку — вращение. Колесо — масштаб. Двойной щелчок — к локации.";
+        LostMouseCapture+=(_,_)=>{dragging=false;Cursor=Cursors.Hand;};
         visuals=new VisualCollection(this);loop=new CompositorLoop(Frame);
         for(int i=0;i<6;i++){var layer=new StarLayer(new DrawingVisual(),new TranslateTransform(),.25+i*.14,i);layer.Visual.Transform=layer.Shift;stars.Add(layer);visuals.Add(layer.Visual);}
         visuals.Add(disk);visuals.Add(globe);visuals.Add(signal);
@@ -76,6 +85,46 @@ public sealed class OrbitScene:FrameworkElement
     }
     protected override int VisualChildrenCount=>visuals?.Count??0;
     protected override Visual GetVisualChild(int index)=>visuals[index];
+    protected override HitTestResult? HitTestCore(PointHitTestParameters parameters)
+    {
+        var p=parameters.HitPoint;double r=radius*zoom;
+        return scene=="earth"&&IsVisible&&(p.X-cx)*(p.X-cx)+(p.Y-cy)*(p.Y-cy)<=r*r?new PointHitTestResult(this,p):null;
+    }
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);if(scene!="earth")return;
+        if(e.ClickCount==2){ZoomToLocation();e.Handled=true;return;}
+        dragPoint=e.GetPosition(this);dragging=CaptureMouse();Cursor=Cursors.ScrollAll;e.Handled=true;
+    }
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);if(!dragging)return;
+        if(e.LeftButton!=MouseButtonState.Pressed){ReleaseMouseCapture();return;}
+        var point=e.GetPosition(this);RotateBy(point.X-dragPoint.X,point.Y-dragPoint.Y);dragPoint=point;e.Handled=true;
+    }
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {base.OnMouseLeftButtonUp(e);if(!dragging)return;dragging=false;ReleaseMouseCapture();Cursor=Cursors.Hand;e.Handled=true;}
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
+    {base.OnMouseWheel(e);if(scene!="earth")return;SetZoom(targetZoom*Math.Pow(1.18,e.Delta/120.0));e.Handled=true;}
+    public void RotateBy(double dx,double dy)
+    {
+        manualView=true;double sensitivity=2/Math.Max(100,radius*zoom);
+        yaw-=dx*sensitivity;pitch=Math.Clamp(pitch+dy*sensitivity,-1.5,1.5);toYaw=yaw;toPitch=pitch;yawVelocity=pitchVelocity=0;
+        UpdateRotation();DrawSignal(loop.Time);
+    }
+    public void SetZoom(double value)
+    {
+        if(!double.IsFinite(value))return;targetZoom=Math.Clamp(value,1,4);
+        if(!manualView&&place!=null)toPitch=Math.Clamp(place.Latitude*Math.PI/180-(targetZoom>1.05?0:.34),-1.5,1.5);
+        if(!motion){zoom=targetZoom;pitch=toPitch;UpdateRotation();DrawSignal(loop.Time);}
+    }
+    public void ZoomToLocation()
+    {
+        manualView=false;
+        if(place!=null){double desired=place.Longitude*Math.PI/180;toYaw=yaw+Math.Atan2(Math.Sin(desired-yaw),Math.Cos(desired-yaw));}
+        SetZoom(targetZoom>1.1?1:2.4);
+        if(!motion){yaw=toYaw;pitch=toPitch;UpdateRotation();DrawSignal(loop.Time);}
+    }
     static double Smooth(double t){t=Math.Clamp(t,0,1);return t*t*t*(10+t*(-15+6*t));}
     static void Follow(ref double position,ref double velocity,double target,double dt)
     {const double omega=2.35;double offset=position-target,c=velocity+omega*offset,decay=Math.Exp(-omega*dt);position=target+(offset+c*dt)*decay;velocity=(velocity-omega*c*dt)*decay;}
@@ -90,18 +139,19 @@ public sealed class OrbitScene:FrameworkElement
     void ApplySceneOpacity(){globe.Opacity=earthOpacity;disk.Opacity=earthOpacity;signal.Opacity=earthOpacity;foreach(var star in stars)star.Visual.Opacity=skyOpacity;}
     public void Focus(Place? target,bool source=false)
     {
-        if(place==target&&origin==source)return;previousPlace=place;previousLabel=label;place=target;origin=source;selectedAt=loop.Time;
+        if(place==target&&origin==source)return;manualView=false;previousPlace=place;previousLabel=label;place=target;origin=source;selectedAt=loop.Time;
         countryBorder.Geometry=source||target==null?null:CountryBorders.Mesh(target.Code);
         if(target==null){toYaw=yaw;toPitch=pitch;}
-        else{double desired=target.Longitude*Math.PI/180;toYaw=yaw+Math.Atan2(Math.Sin(desired-yaw),Math.Cos(desired-yaw));toPitch=Math.Clamp(target.Latitude*Math.PI/180-.34,-1.2,1.2);}
+        else{double desired=target.Longitude*Math.PI/180;toYaw=yaw+Math.Atan2(Math.Sin(desired-yaw),Math.Cos(desired-yaw));toPitch=Math.Clamp(target.Latitude*Math.PI/180-(targetZoom>1.05?0:.34),-1.5,1.5);}
         label=Label(place);if(!motion){yaw=toYaw;pitch=toPitch;yawVelocity=pitchVelocity=0;UpdateRotation();}DrawSignal(loop.Time);
     }
     FormattedText? Label(Place? p)=>p==null?null:new FormattedText((origin?"Ваше подключение · ":"")+p.Country,CultureInfo.CurrentCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),12,ink,VisualTreeHelper.GetDpi(this).PixelsPerDip);
     void Frame(double time,double dt)
     {
         var watch=Stopwatch.StartNew();
-        if(place!=null){Follow(ref yaw,ref yawVelocity,toYaw,dt);Follow(ref pitch,ref pitchVelocity,toPitch,dt);}
-        else{double speed=.028;double blend=1-Math.Exp(-dt*2);yawVelocity+=(speed-yawVelocity)*blend;yaw+=yawVelocity*dt;}
+        if(!dragging&&!manualView&&place!=null){Follow(ref yaw,ref yawVelocity,toYaw,dt);Follow(ref pitch,ref pitchVelocity,toPitch,dt);}
+        else if(!dragging&&!manualView){double speed=.028;double blend=1-Math.Exp(-dt*2);yawVelocity+=(speed-yawVelocity)*blend;yaw+=yawVelocity*dt;}
+        zoom+=(targetZoom-zoom)*(1-Math.Exp(-dt*10));
         activation+=( (connected?1:0)-activation)*(1-Math.Exp(-dt*9));
         double fade=1-Math.Exp(-dt*10);earthOpacity+=(earthTarget-earthOpacity)*fade;skyOpacity+=(skyTarget-skyOpacity)*fade;
         if(Math.Abs(earthOpacity-earthTarget)<.001)earthOpacity=earthTarget;if(Math.Abs(skyOpacity-skyTarget)<.001)skyOpacity=skyTarget;ApplySceneOpacity();
@@ -111,6 +161,7 @@ public sealed class OrbitScene:FrameworkElement
     }
     void UpdateRotation()
     {
+        if(globe.Camera is OrthographicCamera camera)camera.Width=2/zoom;
         double a=Math.Cos(yaw),b=Math.Sin(yaw),c=Math.Cos(pitch),d=Math.Sin(pitch);
         rotation.Matrix=new Matrix3D(a,-b*d,b*c,0, 0,c,d,0, -b,-a*d,a*c,0, 0,0,0,1);
     }
@@ -126,7 +177,7 @@ public sealed class OrbitScene:FrameworkElement
         void Marker(Place target,FormattedText? title,double opacity,double growth)
         {
             var p=Project(target);opacity*=Smooth(p.Z/.16);if(opacity<.001)return;
-            var anchor=new Point(cx+p.X*radius,cy-p.Y*radius);double length=radius*.65*growth;
+            var anchor=new Point(cx+p.X*radius*zoom,cy-p.Y*radius*zoom);double length=radius*.65*growth;
             dc.PushOpacity(opacity);dc.DrawLine(beam,anchor,new Point(anchor.X,anchor.Y-length));
             if(origin){dc.DrawEllipse(ink,null,anchor,3.5+activation,3.5+activation);dc.DrawEllipse(null,beam,anchor,9,4);}
             dc.DrawEllipse(ink,null,new Point(anchor.X,anchor.Y-length),2+activation,2+activation);
@@ -147,7 +198,7 @@ public sealed class OrbitScene:FrameworkElement
     }
     protected override void OnRender(DrawingContext dc)
     {
-        dc.DrawRectangle(Brushes.Black,null,new Rect(RenderSize));if(layoutDirty){BuildSky();using(var diskDrawing=disk.RenderOpen())diskDrawing.DrawEllipse(new SolidColorBrush(Color.FromRgb(5,5,5)),edge,new Point(cx,cy),radius,radius);layoutDirty=false;UpdateSceneOpacity();}UpdateRotation();DrawSignal(loop.Time);
+        dc.DrawRectangle(Brushes.Black,null,new Rect(RenderSize));if(layoutDirty){BuildSky();layoutDirty=false;UpdateSceneOpacity();}UpdateRotation();DrawSignal(loop.Time);
     }
     void BuildSky()
     {

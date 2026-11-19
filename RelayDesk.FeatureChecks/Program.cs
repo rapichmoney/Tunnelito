@@ -13,6 +13,12 @@ static class Program
     static object? Call(object target,string name,params object?[] args)=>target.GetType().GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(target,args);
     static void Pump(int ms=100){var frame=new DispatcherFrame();var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(ms)};timer.Tick+=(_,_)=>{timer.Stop();frame.Continue=false;};timer.Start();Dispatcher.PushFrame(frame);}
     static void Wait(Task task){while(!task.IsCompleted)Pump();task.GetAwaiter().GetResult();}
+    static void AcceptRules(App app,MainWindow window,Action open)
+    {
+        var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(100)};bool seen=false;
+        timer.Tick+=(_,_)=>{var dialog=app.Windows.OfType<DomainBatchWindow>().FirstOrDefault();if(dialog==null)return;timer.Stop();seen=dialog.Owner==window;var add=Tree<Button>(dialog).Single(b=>b.Content?.ToString()=="Добавить выбранные");if(add.IsEnabled)add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));else dialog.Close();};
+        timer.Start();try{open();}finally{timer.Stop();}Pump();Check(seen,"Export uses the domain preview rather than VPN profile import");
+    }
     static IEnumerable<T> Tree<T>(DependencyObject root) where T:DependencyObject
     {if(root is T match)yield return match;for(int i=0;i<System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);i++)foreach(var child in Tree<T>(System.Windows.Media.VisualTreeHelper.GetChild(root,i)))yield return child;}
     [STAThread] static int Main(string[] args)
@@ -35,11 +41,31 @@ static class Program
                 Check(((StackPanel)window.FindName("AppRoutes")).Children.Count==100,mode+" large library renders one page");
                 Check(new Store(folder).Settings.SharedQuickRoutes!.Count==1000,mode+" domain rules survive reload");
                 Check(Tree<Button>(window).Any(b=>b.Content?.ToString()=="Экспорт доменов…"),mode+" offers export");
-                Call(window,"SelectPage",3);Pump();Check(Tree<Button>(window).Any(b=>b.Content?.ToString()=="Переустановить ядра Tunnelito…"),mode+" offers scoped core repair");
-                if(mode=="orbit"&&args.Contains("--repair"))
+                foreach(bool asJson in new[]{true,false})
                 {
-                    backend.ModernSaveRoutes([]);
+                    string domain=asJson?"json-import.example.org":"text-import.example.org";
+                    string exported=DomainRuleTransfer.Export([new("domain_suffix",domain,"Через VPN")],asJson);
+                    string file=Path.Combine(folder,asJson?"export.json":"export.txt");File.WriteAllText(file,exported);
+                    AcceptRules(app,window,()=>backend.ModernImportText(File.ReadAllText(file)));
+                    Check(backend.ModernStore.Settings.SharedQuickRoutes!.Any(r=>r.Value==domain)&&backend.ModernStore.Profiles.Count==1,mode+" ordinary file import recognizes exported "+(asJson?"JSON":"TXT"));
+                }
+                string updateExport=DomainRuleTransfer.Export([new("domain_suffix","json-import.example.org","Напрямую")],true);int beforeUpdate=backend.ModernStore.Settings.SharedQuickRoutes!.Count;
+                AcceptRules(app,window,()=>backend.ModernImportText(updateExport));
+                Check(backend.ModernStore.Settings.SharedQuickRoutes!.Count==beforeUpdate&&backend.ModernStore.Settings.SharedQuickRoutes.Single(r=>r.Value=="json-import.example.org").Direct,mode+" reimport updates changed route without duplicate");
+                var same=new DomainBatchWindow(updateExport,backend.ModernStore.Settings.SharedQuickRoutes.Select(r=>new RouteRule{Kind=r.Kind,Value=r.Value,Route=r.Direct?"Напрямую":r.Zapret?"Через zapret":"Через VPN"}));same.Show();Pump();Check(Tree<TextBlock>(same).Any(t=>t.Text.Contains("Импорт не требуется")),mode+" identical export explains that rules already match");same.Close();
+                Call(window,"SelectPage",3);Pump();Check(Tree<Button>(window).Any(b=>b.Content?.ToString()=="Переустановить ядра Tunnelito…"),mode+" offers scoped core repair");
+                if(mode=="orbit"&&(args.Contains("--repair")||args.Contains("--validate")))
+                {
+                    Check(backend.ModernStore.Settings.SharedQuickRoutes!.Any(r=>r.Outbound=="@proxy"),"Repair fixture retains normalized common routes");
+                    backend.ModernStore.Profiles.Add(new Profile{Core="Xray",Name="Xray validation fixture",QuickRoutes=backend.ModernStore.Settings.SharedQuickRoutes.ToList(),Config="{\"outbounds\":[{\"protocol\":\"socks\",\"tag\":\"proxy\",\"settings\":{\"servers\":[{\"address\":\"127.0.0.1\",\"port\":9}]}}]}"});backend.ModernStore.Save();
                     string installed=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"RelayDesk");BundledCores.Bind(backend.ModernStore,installed);
+                    if(args.Contains("--validate"))
+                    {
+                        Wait((Task)Call(backend,"ValidateNewSingBox",backend.ModernStore.Settings.Engines["sing-box"],CancellationToken.None)!);
+                        Wait((Task)Call(backend,"ValidateNewProxyCore","Xray",backend.ModernStore.Settings.Engines["Xray"],CancellationToken.None)!);
+                        Check(true,"Sing-box and Xray validators accept normalized @proxy rules after runtime resolution");
+                        window.Close();window=null;Pump();continue;
+                    }
                     Wait(backend.ModernSession.Connect(backend.ModernProfile!,false));int beforePid=backend.ModernSession.Proxy!.Id;
                     var originalProfiles=File.ReadAllText(Path.Combine(folder,"profiles.json"));
                     Wait(backend.ModernRepairCores(Console.WriteLine));

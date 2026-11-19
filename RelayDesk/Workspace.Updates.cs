@@ -123,7 +123,8 @@ public partial class Workspace
         var validator = new EngineSession(scratch, Write);
         foreach (var profile in store.Profiles.Where(p => p.Core == "sing-box"))
         {
-            cancellation.ThrowIfCancellationRequested(); await validator.Check(profile);
+            cancellation.ThrowIfCancellationRequested();
+            await validator.Check(new Profile{Core=profile.Core,Config=RuntimePolicy.Config(profile,store.Settings,ConnectionMode.VpnOnly)});
             bool supportsCombined = profile.Managed || (JsonTools.Object(profile.Config)["inbounds"] as System.Text.Json.Nodes.JsonArray)?.Any(n => JsonTools.Text(n?["type"]) == "tun" && JsonTools.Text(n?["auto_route"]) == "true") == true;
             if (supportsCombined && store.Settings.ConditionalRouting)
             {
@@ -140,7 +141,7 @@ public partial class Workspace
         foreach(var profile in store.Profiles.Where(p=>p.Core==id))
         {
             cancellation.ThrowIfCancellationRequested();
-            await validator.Check(profile);
+            await validator.Check(new Profile{Core=profile.Core,Config=RuntimePolicy.Config(profile,store.Settings,ConnectionMode.VpnOnly)});
         }
     }
     async Task ValidateNewZapret(string executable,CancellationToken cancellation)

@@ -30,7 +30,7 @@ public sealed class DomainBatchWindow:ThemedWindow
         var status=new TextBlock{TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,10)};top.Children.Add(status);
         var bottom=new StackPanel{Margin=new Thickness(0,12,0,0)};DockPanel.SetDock(bottom,Dock.Bottom);root.Children.Add(bottom);
         var first=new CheckBox{Content="Поместить новые правила перед существующими",Margin=new Thickness(0,0,0,8)};bottom.Children.Add(first);
-        bottom.Children.Add(new TextBlock{Text="Совпадающие правила сохраняются прежними. Если список добавлен в конец, более раннее правило приложения или домена может сработать первым.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,12)});
+        bottom.Children.Add(new TextBlock{Text="Совпадающие правила с другим маршрутом будут обновлены после подтверждения. Если новые правила добавлены в конец, более раннее правило приложения или домена может сработать первым.",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,12)});
         var actions=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};bottom.Children.Add(actions);
         var cancel=new Button{Content="Отмена",IsCancel=true,Margin=new Thickness(0,0,8,0)};actions.Children.Add(cancel);
         var add=new Button{Content="Добавить выбранные",IsEnabled=false};actions.Children.Add(add);
@@ -42,16 +42,18 @@ public sealed class DomainBatchWindow:ThemedWindow
             try
             {
                 var batch=DomainRuleTransfer.Parse(input.Text,new[]{"domain_suffix","domain","domain_keyword"}[kind.SelectedIndex],route.SelectedItem?.ToString()??"Через VPN");
-                int exact=0,overlap=0;candidates=[];
+                int exact=0,overlap=0,updates=0;candidates=[];
                 foreach(var entry in batch.Entries)
                 {
                     var candidate=new RouteRule{Kind=entry.Kind,Value=entry.Value,Route=entry.Route};
-                    if(known.Any(r=>RuleMatching.SameTarget(r,candidate))){exact++;continue;}
+                    var existing=known.FirstOrDefault(r=>RuleMatching.SameTarget(r,candidate));
+                    if(existing!=null){if(existing.Route==entry.Route){exact++;continue;}updates++;}
                     if(RuleMatching.Overlaps(candidate,known).Count>0)overlap++;
                     candidates.Add(new(){Entry=entry});
                 }
                 rows.ItemsSource=candidates;add.IsEnabled=candidates.Count>0;
-                status.Text=$"Новых: {candidates.Count}. Повторов: {batch.Duplicates}. Уже есть: {exact}. Пересечений: {overlap}. Ошибок: {batch.Errors.Count}."+(batch.Errors.Count>0?"\n"+string.Join("\n",batch.Errors.Take(3)):"");
+                status.Text=$"Новых: {candidates.Count-updates}. Обновлений маршрута: {updates}. Повторов: {batch.Duplicates}. Уже есть: {exact}. Пересечений: {overlap}. Ошибок: {batch.Errors.Count}."+(batch.Errors.Count>0?"\n"+string.Join("\n",batch.Errors.Take(3)):"");
+                if(candidates.Count==0&&exact>0)status.Text+="\nВсе записи уже добавлены с теми же маршрутами. Импорт не требуется.";
             }
             catch(Exception ex){candidates=[];rows.ItemsSource=null;add.IsEnabled=false;status.Text=ex.Message;}
         }

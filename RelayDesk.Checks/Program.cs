@@ -760,6 +760,8 @@ if(args.Length>1)
 var domains=DomainRuleTransfer.Parse("EXAMPLE.com, *.пример.рф; https://Example.com/path\nbad/domain\n# comment");
 Check(domains.Entries.Count==2&&domains.Duplicates==1&&domains.Errors.Count==1,"Bulk domains normalize URL, wildcard and IDN while reporting bad entries and repeats");
 var domainFixture=new[]{new DomainEntry("domain","example.com","Через VPN"),new DomainEntry("domain_suffix","example.net","Напрямую"),new DomainEntry("domain_keyword","discord","Через zapret")};
+Check(DomainRuleTransfer.IsExport(DomainRuleTransfer.Export(domainFixture,true))&&DomainRuleTransfer.IsExport(DomainRuleTransfer.Export(domainFixture,false)),"Generic import recognizes both exported rule formats");
+Check(!DomainRuleTransfer.IsExport("{\"outbounds\":[]}")&&!DomainRuleTransfer.IsExport("{\"Format\":1}"),"Ordinary VPN JSON is not mistaken for exported rules");
 foreach(bool asJson in new[]{false,true})Check(DomainRuleTransfer.Parse(DomainRuleTransfer.Export(domainFixture,asJson)).Entries.SequenceEqual(domainFixture),"Domain transfer preserves type, route and order in "+(asJson?"JSON":"TXT"));
 Check(DomainRuleTransfer.Parse("[direct]\nexample.org\n[vpn]\nexample.net").Entries.Select(e=>e.Route).SequenceEqual(new[]{"Напрямую","Через VPN"}),"Plain-text domain sections preserve their routes");
 Check(DomainRuleTransfer.Parse(string.Join('\n',Enumerable.Range(0,20000).Select(i=>"host"+i+".example.com"))).Entries.Count==20000,"Large domain batch supports twenty thousand entries");

@@ -280,11 +280,20 @@ public partial class Workspace : UserControl
     void ImportFile(object sender, RoutedEventArgs e) => Safe(() =>
     {
         var dialog = new OpenFileDialog { Filter = "Конфигурации и ссылки|*.json;*.yaml;*.yml;*.txt|Все файлы|*.*" };
-        if (dialog.ShowDialog() == true) { if (new FileInfo(dialog.FileName).Length > 2_000_000) throw new FormatException("Файл больше 2 МБ."); ImportText(File.ReadAllText(dialog.FileName)); }
+        if(dialog.ShowDialog()==true)
+        {
+            long length=new FileInfo(dialog.FileName).Length;if(length>4_000_000)throw new FormatException("Файл больше 4 МБ.");
+            string text=File.ReadAllText(dialog.FileName);if(length>2_000_000&&!DomainRuleTransfer.IsExport(text))throw new FormatException("Конфигурация больше 2 МБ.");ImportText(text);
+        }
         return Task.CompletedTask;
     });
     void ImportText(string text)
     {
+        if(DomainRuleTransfer.IsExport(text))
+        {
+            if(RuleListImportRequested==null)throw new InvalidOperationException("Открой «Приложения и правила → Импорт списка» для этого файла.");
+            RuleListImportRequested(text);return;
+        }
         var result = ImportParser.Parse(text);
         var preview = new ImportWindow(result) { Owner = Window.GetWindow(this) };
         if (preview.ShowDialog() != true) return;

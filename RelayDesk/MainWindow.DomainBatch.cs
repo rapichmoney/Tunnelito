@@ -6,6 +6,12 @@ using Microsoft.Win32;
 namespace RelayDesk;
 public partial class MainWindow
 {
+    bool TryImportDomainExportFile(string path)
+    {
+        if(!File.Exists(path)||new FileInfo(path).Length>4_000_000||Path.GetExtension(path).ToLowerInvariant() is not (".json" or ".txt"))return false;
+        try{string text=File.ReadAllText(path);if(!DomainRuleTransfer.IsExport(text))return false;OpenDomainBatch(text);return true;}
+        catch(Exception ex){Toast(ex.Message);return true;}
+    }
     int rulesPage;
     Button? rulesPrevious,rulesNext;
     TextBlock? rulesPageLabel;
@@ -48,10 +54,16 @@ public partial class MainWindow
         {
             var window=new DomainBatchWindow(text,state.Rules){Owner=this};
             if(window.ShowDialog()!=true)return;
-            var rules=window.Chosen.Select(r=>new RouteRule{Kind=r.Kind,Value=r.Value,Name=r.Value,Route=r.Route}).ToList();
+            var rules=new List<RouteRule>();int updated=0;
+            foreach(var entry in window.Chosen)
+            {
+                var candidate=new RouteRule{Kind=entry.Kind,Value=entry.Value,Name=entry.Value,Route=entry.Route};
+                var existing=state.Rules.FirstOrDefault(r=>r.Kind!="default"&&RuleMatching.SameTarget(r,candidate));
+                if(existing!=null){existing.Route=entry.Route;existing.OutboundTag="";updated++;}else rules.Add(candidate);
+            }
             int index=window.First?0:state.Rules.Count-1;
             foreach(var rule in rules)state.Rules.Insert(index++,rule);
-            if(PersistRules())Toast($"Добавлено доменов: {rules.Count}. Для текущего подключения нажми «Применить правила».");
+            if(PersistRules())Toast($"Добавлено: {rules.Count}. Обновлено: {updated}. Для текущего подключения нажми «Применить правила».");
         }
         catch(Exception ex){LoadProfileRules();Toast(ex.Message);}
         finally{rulesDialogOpen=false;RegisterActivity();}

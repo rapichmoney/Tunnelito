@@ -10,6 +10,14 @@ public static class DomainRuleTransfer
 {
     public const int Maximum=20000;
     public static bool IsDomain(string kind)=>kind is "domain" or "domain_suffix" or "domain_keyword";
+    public static bool IsExport(string text)
+    {
+        text=text.Trim().TrimStart('\uFEFF');
+        if(text.StartsWith("# Tunnelito:",StringComparison.Ordinal))return true;
+        if(!text.StartsWith('{'))return false;
+        try{using var doc=JsonDocument.Parse(text);return doc.RootElement.TryGetProperty("Format",out var format)&&format.ValueKind==JsonValueKind.String&&format.GetString()=="Tunnelito.DomainRules";}
+        catch(JsonException){return false;}
+    }
     public static DomainBatch Parse(string text,string kind="domain_suffix",string route="Через VPN")
     {
         if(text.Length>4_000_000)throw new InvalidDataException("Список превышает 4 МБ.");
@@ -24,7 +32,7 @@ public static class DomainRuleTransfer
             }
             catch(Exception ex) when(ex is InvalidDataException or FormatException){errors.Add(v+": "+ex.Message);}
         }
-        text=text.Trim();
+        text=text.Trim().TrimStart('\uFEFF');
         if(text.StartsWith('{')||text.StartsWith('[')&&!Regex.IsMatch(text,@"^\[(vpn|direct|zapret)\](\r?\n|$)"))
         {
             using var doc=JsonDocument.Parse(text,new JsonDocumentOptions{MaxDepth=20});var root=doc.RootElement;

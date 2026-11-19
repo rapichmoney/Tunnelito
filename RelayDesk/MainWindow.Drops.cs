@@ -29,6 +29,8 @@ public partial class MainWindow
     async void HandleWindowDrop(OverlayDrop data)
     {
         if(rulesDialogOpen){Toast("Сначала закрой текущее окно настройки.");return;}
+        if(data.Files.Length==1&&TryImportDomainExportFile(data.Files[0]))return;
+        if(data.Files.Length==0&&DomainRuleTransfer.IsExport(data.Text)){OpenDomainBatch(data.Text);return;}
         if(!IsVisible||WindowState==WindowState.Minimized)ShowFromTray();else Activate();
         WakeQuietMode();rulesDialogOpen=true;
         try

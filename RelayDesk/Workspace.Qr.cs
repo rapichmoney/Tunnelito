@@ -5,6 +5,7 @@ using System.IO;
 namespace RelayDesk;
 public partial class Workspace
 {
+    public event Action<string>? RuleListImportRequested;
     public void ModernImportText(string text)=>ImportText(text);
     public Task ModernImportSubscription(string text)=>App.UseOrbitUi?ImportOrbitSubscription(text):ImportSubscription(text);
     public void ModernAcceptShare(QrShare share)

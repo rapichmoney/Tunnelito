@@ -42,6 +42,7 @@ public partial class MainWindow
         {
             var part=qrParts.Accept(text.Trim());if(part.Text==null){Toast($"Считано QR-кодов: {part.Read} из {part.Total}. Считай оставшиеся части; настройки пока не менялись.");return;}
             text=part.Text;
+            if(DomainRuleTransfer.IsExport(text)){OpenDomainBatch(text);return;}
             rulesDialogOpen=true;
             if(text.StartsWith("relaydesk-share-v1:",StringComparison.Ordinal))
             {
@@ -62,6 +63,8 @@ public partial class MainWindow
     {
         if(rulesDialogOpen){Toast("Сначала закрой текущее окно настройки.");return;}
         ShowFromTray();
+        if(data.Files.Length==1&&TryImportDomainExportFile(data.Files[0]))return;
+        if(data.Files.Length==0&&DomainRuleTransfer.IsExport(data.Text)){OpenDomainBatch(data.Text);return;}
         rulesDialogOpen=true;
         try
         {

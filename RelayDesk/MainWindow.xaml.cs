@@ -42,7 +42,7 @@ public partial class MainWindow : Window
         BuildVersion.Text=Title;
         Width=Math.Min(legacyUi?1320:1380,SystemParameters.WorkArea.Width-32);Height=Math.Min(legacyUi?920:900,SystemParameters.WorkArea.Height-32);
         MinWidth=Math.Min(legacyUi?1040:1000,Width);MinHeight=Math.Min(legacyUi?740:680,Height);
-        backend=new Workspace();backend.ModernPrepareData();BackendHost.Content=backend;
+        backend=new Workspace();backend.RuleListImportRequested+=OpenDomainBatch;backend.ModernPrepareData();BackendHost.Content=backend;
         backend.ModernSession.Changed+=()=>Dispatcher.BeginInvoke(RefreshFromBackend);
         backend.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("pack://application:,,,/RelayDesk;component/Theme.xaml")});
         foreach(var pair in new[]{("Page","#101318"),("Surface","#1B1E25"),("Ink","#ECEEF2"),("Muted","#9DA3AF"),("Line","#3D4350"),("Accent","#D2DAE6"),("Selected","#303641"),("Action","#444C59")})backend.Resources[pair.Item1]=new SolidColorBrush((Color)ColorConverter.ConvertFromString(pair.Item2));

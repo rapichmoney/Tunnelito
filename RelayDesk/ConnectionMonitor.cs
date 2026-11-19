@@ -29,7 +29,9 @@ public sealed class ConnectionMonitor : IDisposable
     public static string Configure(string config, int port)
     {
         var root = JsonTools.Object(config);
-        if (!string.IsNullOrEmpty(JsonTools.Text(root["experimental"]?["clash_api"]?["external_controller"]))) return config;
+        root["route"]??=new JsonObject();
+        root["route"]!["find_process"]=true;
+        if (!string.IsNullOrEmpty(JsonTools.Text(root["experimental"]?["clash_api"]?["external_controller"]))) return root.ToJsonString(JsonTools.Options);
         if (root["experimental"] == null) root["experimental"] = new JsonObject();
         if (root["experimental"]!["clash_api"] == null) root["experimental"]!["clash_api"] = new JsonObject();
         var api = root["experimental"]!["clash_api"]!;

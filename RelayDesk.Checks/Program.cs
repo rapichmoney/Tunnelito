@@ -413,9 +413,12 @@ Check(!CoreRecovery.OwnConfig(recoveryFolder, "sing-box.exe run -c \""+Path.Comb
 var monitorOriginal = "{\"inbounds\":[],\"outbounds\":[{\"type\":\"direct\",\"tag\":\"direct\"}],\"dns\":{\"servers\":[]},\"route\":{\"final\":\"direct\"}}";
 var monitored = ConnectionMonitor.Configure(monitorOriginal, 19381);
 var monitoredJson = JsonTools.Object(monitored);
-Check(JsonTools.Text(monitoredJson["route"]) == JsonTools.Text(JsonTools.Object(monitorOriginal)["route"]) && JsonTools.Text(monitoredJson["dns"]) == JsonTools.Text(JsonTools.Object(monitorOriginal)["dns"]), "Connection instrumentation preserves routes and DNS");
+var monitoredRoute=monitoredJson["route"]!.DeepClone().AsObject();monitoredRoute.Remove("find_process");
+Check(monitoredRoute.ToJsonString()==JsonTools.Object(monitorOriginal)["route"]!.ToJsonString()&&JsonTools.Text(monitoredJson["dns"])==JsonTools.Text(JsonTools.Object(monitorOriginal)["dns"]),"Connection instrumentation preserves routing decisions and DNS");
+Check(monitoredJson["route"]!["find_process"]!.GetValue<bool>(),"Process discovery is enabled without requiring application rules");
 Check(ConnectionMonitor.Endpoint(monitored).Address.Host == "127.0.0.1" && ConnectionMonitor.Endpoint(monitored).Secret.Length == 64, "New connection API binds loopback with random secret");
 Check(ConnectionMonitor.Configure(monitored, 19382) == monitored, "Existing controller and authentication preserved");
+var oldController=JsonTools.Object(monitored);oldController["route"]!["find_process"]=false;var enabledController=JsonTools.Object(ConnectionMonitor.Configure(oldController.ToJsonString(),19382));Check(enabledController["route"]!["find_process"]!.GetValue<bool>()&&JsonNode.DeepEquals(enabledController["experimental"],oldController["experimental"]),"Existing API does not bypass process discovery and retains authentication");
 Reject(() => ConnectionMonitor.Endpoint("{\"experimental\":{\"clash_api\":{\"external_controller\":\"0.0.0.0:9090\"}}}"), "Monitor rejects non-loopback API targets");
 var monitorTypes = new Dictionary<string,string> { ["direct"] = "direct", ["proxy"] = "vless", ["group"] = "selector" };
 Check(ConnectionMonitor.Classify(["proxy", "group"], monitorTypes) == "Через VPN / прокси" && ConnectionMonitor.Classify(["direct"], monitorTypes) == "Напрямую", "Observed outbound types classify direct and proxy routes");

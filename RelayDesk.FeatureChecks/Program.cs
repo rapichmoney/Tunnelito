@@ -54,6 +54,20 @@ static class Program
                 Check(backend.ModernStore.Settings.SharedQuickRoutes!.Count==beforeUpdate&&backend.ModernStore.Settings.SharedQuickRoutes.Single(r=>r.Value=="json-import.example.org").Direct,mode+" reimport updates changed route without duplicate");
                 var same=new DomainBatchWindow(updateExport,backend.ModernStore.Settings.SharedQuickRoutes.Select(r=>new RouteRule{Kind=r.Kind,Value=r.Value,Route=r.Direct?"Напрямую":r.Zapret?"Через zapret":"Через VPN"}));same.Show();Pump();Check(Tree<TextBlock>(same).Any(t=>t.Text.Contains("Импорт не требуется")),mode+" identical export explains that rules already match");same.Close();
                 Call(window,"SelectPage",3);Pump();Check(Tree<Button>(window).Any(b=>b.Content?.ToString()=="Переустановить ядра Tunnelito…"),mode+" offers scoped core repair");
+                if(mode=="orbit"&&args.Contains("--process"))
+                {
+                    backend.ModernSaveRoutes([]);BundledCores.Bind(backend.ModernStore,Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"RelayDesk"));
+                    Wait(backend.ModernSession.Connect(backend.ModernProfile!,false));
+                    Check(JsonTools.Object(backend.ModernSession.ActiveRuntimeConfig)["route"]!["find_process"]!.GetValue<bool>(),"Live sing-box config enables lookup with zero application rules");
+                    var target=new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,0);target.Start();int targetPort=((System.Net.IPEndPoint)target.LocalEndpoint).Port;
+                    using var handler=new System.Net.Http.HttpClientHandler{Proxy=new System.Net.WebProxy("http://127.0.0.1:"+port),UseProxy=true};using var client=new System.Net.Http.HttpClient(handler){Timeout=TimeSpan.FromSeconds(12)};using var cancel=new CancellationTokenSource();
+                    var accepted=target.AcceptTcpClientAsync();var request=client.GetAsync("http://127.0.0.1:"+targetPort+"/",cancel.Token);Wait(accepted);using var upstream=accepted.Result;
+                    using var monitor=new ConnectionMonitor();List<ConnectionRow> observed=[];
+                    var deadline=DateTime.UtcNow.AddSeconds(5);
+                    do{var read=monitor.Read(backend.ModernSession.ActiveRuntimeConfig,false,[],CancellationToken.None);Wait(read);observed=read.Result;Pump(100);}while(!observed.Any(r=>r.ProcessPath.Length>0)&&DateTime.UtcNow<deadline);
+                    Check(observed.Any(r=>r.ProcessPath.EndsWith("FeatureChecks.exe",StringComparison.OrdinalIgnoreCase)),"Actual sing-box API identifies the test application without EXE routing rules");
+                    cancel.Cancel();try{Wait(request);}catch(OperationCanceledException){}target.Stop();Wait(backend.ModernSession.StopAll());
+                }
                 if(mode=="orbit"&&(args.Contains("--repair")||args.Contains("--validate")))
                 {
                     Check(backend.ModernStore.Settings.SharedQuickRoutes!.Any(r=>r.Outbound=="@proxy"),"Repair fixture retains normalized common routes");

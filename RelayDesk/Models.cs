@@ -35,6 +35,7 @@ public class Preferences
     public bool InterfaceMotion { get; set; } = true;
     public string OrbitBackground {get;set;}="earth";
     public string UiMode {get;set;}="orbit";
+    public int UiDefaultVersion {get;set;}=1;
     public Dictionary<string,string> ServerCountries {get;set;}=new();
     public bool AsciiBackground { get; set; } = true;
     public bool GraphiteGlass { get; set; } = true;
@@ -107,7 +108,13 @@ public sealed class Store
         // Never overwrite a damaged user file as part of startup.
         var file = Path.Combine(Folder, "profiles.json");
         if (File.Exists(file)) Profiles.AddRange(JsonSerializer.Deserialize<List<Profile>>(File.ReadAllText(file)) ?? throw new InvalidDataException("Файл профилей пуст."));
-        if (File.Exists(Path.Combine(Folder, "settings.json"))) Settings = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(Path.Combine(Folder, "settings.json"))) ?? new();
+        var settingsFile=Path.Combine(Folder,"settings.json");
+        if(File.Exists(settingsFile))
+        {
+            string saved=File.ReadAllText(settingsFile);Settings=JsonSerializer.Deserialize<Preferences>(saved)??new();
+            using var document=JsonDocument.Parse(saved);
+            if(!document.RootElement.TryGetProperty("UiDefaultVersion",out _)){Settings.UiMode="orbit";Settings.OrbitBackground="earth";Settings.UiDefaultVersion=1;}
+        }
         foreach (var p in Profiles)
         {
             if (!Guid.TryParseExact(p.Id, "N", out _)) throw new InvalidDataException("Некорректный ID профиля.");

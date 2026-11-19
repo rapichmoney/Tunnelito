@@ -14,7 +14,7 @@ public partial class MainWindow
     static bool ReadClassicPreference()
     {
         string folder=Environment.GetEnvironmentVariable("RELAYDESK_DATA_DIR")??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"RelayDesk");
-        try{using var json=JsonDocument.Parse(File.ReadAllBytes(Path.Combine(folder,"settings.json")));return json.RootElement.TryGetProperty("UiMode",out var mode)&&mode.GetString()=="classic";}
+        try{using var json=JsonDocument.Parse(File.ReadAllBytes(Path.Combine(folder,"settings.json")));return json.RootElement.TryGetProperty("UiDefaultVersion",out _)&&json.RootElement.TryGetProperty("UiMode",out var mode)&&mode.GetString()=="classic";}
         catch(Exception ex) when(ex is IOException or JsonException){return false;}
     }
     void LoadClassicLayout()

@@ -17,7 +17,9 @@ public partial class MainWindow
         if(HomeRoutes.Children.Count==0)HomeRoutes.Children.Add(new TextBlock{Text="Добавь правило в разделе «Приложения».",Foreground=(Brush)FindResource("Muted")});
         string query=RuleSearch.Text.Trim();int filter=RulesFilter.SelectedIndex;
         var rules=state.Rules.Where(r=>r.Kind!="default").Where(r=>filter<=0||filter==1&&(r.Kind.StartsWith("process_")||r.Kind=="browser_default")||filter==2&&r.Kind.StartsWith("domain")||filter==3&&r.Kind=="ip_cidr").Where(r=>query.Length==0||r.Name.Contains(query,StringComparison.CurrentCultureIgnoreCase)||r.Value.Contains(query,StringComparison.OrdinalIgnoreCase)).ToList();
-        foreach(var rule in rules)AppRoutes.Children.Add(RuleRow(rule,false));
+        rulesPage=Math.Clamp(rulesPage,0,Math.Max(0,(rules.Count-1)/100));
+        foreach(var rule in rules.Skip(rulesPage*100).Take(100))AppRoutes.Children.Add(RuleRow(rule,false));
+        if(rulesPrevious!=null){rulesPrevious.IsEnabled=rulesPage>0;rulesNext!.IsEnabled=(rulesPage+1)*100<rules.Count;rulesPageLabel!.Text=$"{(rules.Count==0?0:rulesPage*100+1)}–{Math.Min((rulesPage+1)*100,rules.Count)} из {rules.Count}";}
         if(rules.Count==0)AppRoutes.Children.Add(new TextBlock{Text="Правил пока нет или ничего не найдено. Добавь приложение, сайт или IP.",Margin=new Thickness(12),Foreground=(Brush)FindResource("Muted")});
         DefaultRouteHost.Children.Clear();DefaultRouteHost.Children.Add(RuleRow(state.Rules.First(r=>r.Kind=="default"),true));
         refreshingRoutes=false;
@@ -82,7 +84,7 @@ public partial class MainWindow
         if(deletedRule==null)return;
         state.Rules.Insert(Math.Clamp(deletedIndex,0,state.Rules.Count),deletedRule);deletedRule=null;UndoRuleButton.Visibility=Visibility.Collapsed;if(PersistRules())RefreshRoutes();
     }
-    void RulesFilterChanged(object sender,EventArgs e){if(initialized)RefreshRoutes();}
+    void RulesFilterChanged(object sender,EventArgs e){rulesPage=0;if(initialized)RefreshRoutes();}
     void AddSite(object sender,RoutedEventArgs e)=>OpenRuleEditor(null,"domain_suffix");
     void OpenRuleEditor(RouteRule? existing,string kind,RouteRule? draft=null,bool first=false)
     {

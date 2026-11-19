@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -757,6 +757,19 @@ if(args.Length>1)
     if(!string.IsNullOrEmpty(xrayPath)){extendedStore.Settings.Engines["Xray"]=xrayPath;await checker.Check(new Profile{Core="Xray",Config=extendedXray});}
     Check(true,"Real cores accept extended keyword and subnet rules without opening a connection");
 }
+var domains=DomainRuleTransfer.Parse("EXAMPLE.com, *.пример.рф; https://Example.com/path\nbad/domain\n# comment");
+Check(domains.Entries.Count==2&&domains.Duplicates==1&&domains.Errors.Count==1,"Bulk domains normalize URL, wildcard and IDN while reporting bad entries and repeats");
+var domainFixture=new[]{new DomainEntry("domain","example.com","Через VPN"),new DomainEntry("domain_suffix","example.net","Напрямую"),new DomainEntry("domain_keyword","discord","Через zapret")};
+foreach(bool asJson in new[]{false,true})Check(DomainRuleTransfer.Parse(DomainRuleTransfer.Export(domainFixture,asJson)).Entries.SequenceEqual(domainFixture),"Domain transfer preserves type, route and order in "+(asJson?"JSON":"TXT"));
+Check(DomainRuleTransfer.Parse("[direct]\nexample.org\n[vpn]\nexample.net").Entries.Select(e=>e.Route).SequenceEqual(new[]{"Напрямую","Через VPN"}),"Plain-text domain sections preserve their routes");
+Check(DomainRuleTransfer.Parse(string.Join('\n',Enumerable.Range(0,20000).Select(i=>"host"+i+".example.com"))).Entries.Count==20000,"Large domain batch supports twenty thousand entries");
+bool overLimit=false;try{DomainRuleTransfer.Parse(string.Join('\n',Enumerable.Range(0,20001).Select(i=>"host"+i+".example.com")));}catch(InvalidDataException){overLimit=true;}Check(overLimit,"Oversized domain batch fails without a partial import");
+var corePlan=CoreRepair.Plan();Check(corePlan.Count==4&&corePlan.All(c=>c.Files.Single().Hash.Length==64),"Core repair uses four pinned official packages with SHA-256");
+Check(CoreRepair.RebindZapret(@"--file=C:\old\bin\fake.bin --list=C:\old\lists\hosts.txt",@"C:\old\bin\winws.exe",@"C:\new\bin\winws.exe")==@"--file=C:\new\bin\fake.bin --list=C:\new\lists\hosts.txt","Zapret repair rebinds both payload and sibling list paths");
+var repairFixture=Path.Combine(temp,"repair-fixture");Directory.CreateDirectory(repairFixture);var external=Path.Combine(temp,"external-core");Directory.CreateDirectory(external);File.WriteAllText(Path.Combine(external,"keep.txt"),"external");
+bool outsideBlocked=false;try{CoreRepair.DeleteManagedInstall(repairFixture,external);}catch(IOException){outsideBlocked=true;}Check(outsideBlocked&&File.Exists(Path.Combine(external,"keep.txt")),"Core cleanup refuses external directories");
+var owned=Path.Combine(repairFixture,"components","sing-box",Guid.NewGuid().ToString("N"));Directory.CreateDirectory(Path.Combine(owned,"nested"));File.WriteAllText(Path.Combine(owned,"nested","core.txt"),"owned");CoreRepair.DeleteManagedInstall(repairFixture,owned);Check(!Directory.Exists(owned)&&Directory.Exists(external),"Core cleanup deletes only validated managed installation");
+var migration=Path.Combine(temp,"ui-migration");Directory.CreateDirectory(migration);File.WriteAllText(Path.Combine(migration,"settings.json"),"{\"UiMode\":\"classic\",\"OrbitBackground\":\"ascii\"}");var migrated=new Store(migration);Check(migrated.Settings.UiMode=="orbit"&&migrated.Settings.OrbitBackground=="earth","Existing settings move once to Orbit with Earth");migrated.Settings.UiMode="classic";migrated.Save();Check(new Store(migration).Settings.UiMode=="classic","Later explicit classic choice survives restart");
 Console.WriteLine($"COMPLETE: {count} checks passed.");
 
 sealed class ReleaseHttpHandler(Func<System.Net.Http.HttpRequestMessage,System.Net.Http.HttpResponseMessage> respond) : System.Net.Http.HttpMessageHandler

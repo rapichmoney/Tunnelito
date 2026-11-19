@@ -27,6 +27,7 @@ public partial class MainWindow
             if(clipboard.Image!=null){await AcceptQrImage(clipboard.Image);return;}
             if(string.IsNullOrWhiteSpace(clipboard.Text)){Toast("В буфере нет ссылки, конфигурации или QR-кода.");return;}
             string text=clipboard.Text.Trim();
+            if(currentPage==2&&(text.Contains("Tunnelito.DomainRules",StringComparison.Ordinal)||text.StartsWith("[vpn]")||text.StartsWith("[direct]")||text.StartsWith("[zapret]")||!text.StartsWith('{')&&!text.StartsWith('[')&&DomainRuleTransfer.Parse(text).Entries.Count>1)){OpenDomainBatch(text);return;}
             if(legacyUi&&currentPage!=1&&BrowserAddressDrag.Normalize(text) is string address){HandleWindowDrop(new([],address));return;}
             await AcceptQrText(text);
         }

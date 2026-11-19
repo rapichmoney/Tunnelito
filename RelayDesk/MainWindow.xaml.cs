@@ -66,6 +66,7 @@ public partial class MainWindow : Window
         InitializeOverlay();
         InitializeWindowDrops();
         InitializeWindowClipboard();
+        InitializeRuleTools();
         InitializeOrbit();
         initialized=true;RefreshFromBackend();SelectPage(0);
         InitializeConnectionFilters();

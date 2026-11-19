@@ -146,8 +146,7 @@ public partial class Workspace
     async Task ValidateNewZapret(string executable,CancellationToken cancellation)
     {
         var settings=System.Text.Json.JsonSerializer.Deserialize<Preferences>(System.Text.Json.JsonSerializer.Serialize(store.Settings))!;
-        var oldBin=Path.GetDirectoryName(settings.ZapretExe);var newBin=Path.GetDirectoryName(executable)!;
-        if(!string.IsNullOrEmpty(oldBin))settings.ZapretArgs=settings.ZapretArgs.Replace(oldBin,newBin,StringComparison.OrdinalIgnoreCase);
+        settings.ZapretArgs=CoreRepair.RebindZapret(settings.ZapretArgs,settings.ZapretExe,executable);
         settings.ZapretExe=executable;
         if(string.IsNullOrWhiteSpace(settings.ZapretArgs))settings.ZapretArgs=FlowsealStrategies.Load(executable)[0].Arguments;
         foreach(var mode in new[]{ConnectionMode.ZapretOnly,ConnectionMode.Combined})

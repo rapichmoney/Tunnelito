@@ -6,13 +6,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.34.0</Version>
-    <InformationalVersion>0.34.0-globe-controls</InformationalVersion>
+    <Version>0.35.0</Version>
+    <InformationalVersion>0.35.0-domain-lists-core-repair</InformationalVersion>
     <Product>Tunnelito</Product><Title>Tunnelito</Title><AssemblyTitle>Tunnelito</AssemblyTitle><Company>Tunnelito</Company><Description>Tunnelito — VPN и zapret</Description>
     <ApplicationIcon>Assets\RelayDesk.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);installer\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="installer\cores.lock.json" LogicalName="RelayDesk.Cores.lock.json" />
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
     <None Update="Apply-Update.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="Prepare-Install.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

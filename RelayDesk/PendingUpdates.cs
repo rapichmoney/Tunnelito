@@ -9,6 +9,7 @@ public record PendingCore(string Id,string Revision,string Executable,string Roo
 public record PendingApp(AppRelease Release,string Installer);
 public static class PendingUpdates
 {
+    public static void CancelCores(Store store){if(File.Exists(CorePath(store)))File.Delete(CorePath(store));}
     public static void Cancel(Store store)
     {
         foreach(var path in new[]{CorePath(store),AppPath(store.Folder)})if(File.Exists(path))File.Delete(path);

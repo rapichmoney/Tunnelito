@@ -133,7 +133,7 @@ public sealed class ComponentUpdates(Store store)
         var buffer = new byte[65536]; int read; while ((read = await stream.ReadAsync(buffer, cancellation)) > 0) hash.AppendData(buffer.AsSpan(0, read));
         return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
     }
-    static void ValidateUrl(UpdateFile file, string id)
+    internal static void ValidateUrl(UpdateFile file, string id)
     {
         if (!Uri.TryCreate(file.Url, UriKind.Absolute, out var url) || url.Scheme != "https" || url.UserInfo.Length > 0) throw new InvalidDataException("Некорректный источник обновления.");
         var prefix = "https://github.com/" + OfficialRepository(id) + "/releases/download/";

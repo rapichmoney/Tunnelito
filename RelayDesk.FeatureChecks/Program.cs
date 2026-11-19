@@ -64,9 +64,19 @@ static class Program
                         Wait((Task)Call(backend,"ValidateNewSingBox",backend.ModernStore.Settings.Engines["sing-box"],CancellationToken.None)!);
                         Wait((Task)Call(backend,"ValidateNewProxyCore","Xray",backend.ModernStore.Settings.Engines["Xray"],CancellationToken.None)!);
                         Check(true,"Sing-box and Xray validators accept normalized @proxy rules after runtime resolution");
+                        backend.ModernStore.Profiles.Add(new Profile{Name="Unfinished profile",Config="{\"outbounds\":[{\"type\":\"direct\"}]}"});
+                        backend.ModernStore.Settings.RoutingPreset="proxy";backend.ModernStore.Settings.FallbackRoute="proxy";
+                        bool reproduced=false;try{_=RuntimePolicy.Config(backend.ModernStore.Profiles.Last(),backend.ModernStore.Settings,ConnectionMode.VpnOnly);}catch(InvalidOperationException ex){reproduced=ex.Message.Contains("нет выхода VPN");}
+                        Check(reproduced,"Reproduces missing VPN output in unfinished dormant profile");
+                        foreach(string core in new[]{"sing-box","Xray","mihomo"})
+                        {
+                            Wait((Task)Call(backend,"CheckRepairProxy",core,backend.ModernStore.Settings.Engines[core],null!)!);
+                            Check(true,core+" repair self-test ignores unfinished profiles and user proxy preset");
+                        }
                         window.Close();window=null;Pump();continue;
                     }
                     Wait(backend.ModernSession.Connect(backend.ModernProfile!,false));int beforePid=backend.ModernSession.Proxy!.Id;
+                    backend.ModernStore.Profiles.Add(new Profile{Name="Unfinished profile",Config="{\"outbounds\":[{\"type\":\"direct\"}]}"});backend.ModernStore.Settings.RoutingPreset="proxy";backend.ModernStore.Save();
                     var originalProfiles=File.ReadAllText(Path.Combine(folder,"profiles.json"));
                     Wait(backend.ModernRepairCores(Console.WriteLine));
                     Check(backend.ModernSession.ProxyRunning&&backend.ModernSession.Proxy!.Id!=beforePid,"Repair resumes only its own local test core after replacement");

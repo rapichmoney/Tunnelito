@@ -6,6 +6,13 @@ namespace RelayDesk;
 
 public static class CoreRepair
 {
+    public static Profile Probe(string core)=>core switch
+    {
+        "sing-box"=>new(){Core=core,Config="{\"outbounds\":[{\"type\":\"direct\",\"tag\":\"direct\"}]}"},
+        "Xray"=>new(){Core=core,Config="{\"outbounds\":[{\"protocol\":\"freedom\",\"tag\":\"direct\",\"settings\":{}}]}"},
+        "mihomo"=>new(){Core=core,Config="mixed-port: 0\nmode: direct\nproxies: []\nrules:\n  - MATCH,DIRECT\n"},
+        _=>throw new InvalidDataException("Неизвестное прокси-ядро.")
+    };
     public static string RebindZapret(string text,string previous,string executable)
     {
         var oldBin=Path.GetDirectoryName(previous);var newBin=Path.GetDirectoryName(executable);

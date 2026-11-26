@@ -32,6 +32,8 @@ public sealed class OrbitScene:FrameworkElement
     bool motion=true,connected,layoutDirty=true,origin;
     bool dragging,manualView;
     Point dragPoint;
+    readonly GlobeInertia inertia=new();
+    static double InputTime=>Stopwatch.GetTimestamp()/(double)Stopwatch.Frequency;
     double zoom=1,targetZoom=1;
     public double Zoom=>zoom;
     public double TargetZoom=>targetZoom;
@@ -49,7 +51,7 @@ public sealed class OrbitScene:FrameworkElement
     public int LandPointCount=>dots.Count(d=>d.Land);
     public int RenderTier=>RenderCapability.Tier>>16;
     public double ControlInset{get=>controlInset;set{if(Math.Abs(controlInset-value)<.1)return;controlInset=value;layoutDirty=true;InvalidateArrange();InvalidateVisual();}}
-    public string Scene{get=>scene;set{if(scene==value)return;scene=value;UpdateSceneOpacity();Playback();}}
+    public string Scene{get=>scene;set{if(scene==value)return;inertia.Stop();scene=value;UpdateSceneOpacity();Playback();}}
     public bool Connected
     {
         get=>connected;set
@@ -66,15 +68,15 @@ public sealed class OrbitScene:FrameworkElement
         get=>motion;set
         {
             if(motion==value)return;motion=value;
-            if(!motion){zoom=targetZoom;yaw=toYaw;pitch=toPitch;yawVelocity=pitchVelocity=0;activation=connected?1:0;ink.BeginAnimation(SolidColorBrush.ColorProperty,null);ink.Color=connected?Color.FromRgb(117,199,147):Colors.White;}
+            if(!motion){inertia.Stop();zoom=targetZoom;yaw=toYaw;pitch=toPitch;yawVelocity=pitchVelocity=0;activation=connected?1:0;ink.BeginAnimation(SolidColorBrush.ColorProperty,null);ink.Color=connected?Color.FromRgb(117,199,147):Colors.White;}
             UpdateRotation();UpdateSceneOpacity();Playback();DrawSignal(loop.Time);
         }
     }
     public OrbitScene()
     {
         IsHitTestVisible=true;ClipToBounds=true;beam=new Pen(ink,1.3);
-        ToolTip="Зажми левую кнопку — вращение. Колесо — масштаб. Двойной щелчок — к локации.";
-        LostMouseCapture+=(_,_)=>{dragging=false;Cursor=Cursors.Hand;};
+        ToolTip="Потяни и отпусти — вращение с инерцией. Колесо — масштаб. Двойной щелчок — к локации.";
+        LostMouseCapture+=(_,_)=>{if(dragging)inertia.Stop();dragging=false;Cursor=Cursors.Hand;};
         visuals=new VisualCollection(this);loop=new CompositorLoop(Frame);
         for(int i=0;i<6;i++){var layer=new StarLayer(new DrawingVisual(),new TranslateTransform(),.25+i*.14,i);layer.Visual.Transform=layer.Shift;stars.Add(layer);visuals.Add(layer.Visual);}
         visuals.Add(disk);visuals.Add(globe);visuals.Add(signal);
@@ -94,19 +96,27 @@ public sealed class OrbitScene:FrameworkElement
     {
         base.OnMouseLeftButtonDown(e);if(scene!="earth")return;
         if(e.ClickCount==2){ZoomToLocation();e.Handled=true;return;}
-        dragPoint=e.GetPosition(this);dragging=CaptureMouse();Cursor=Cursors.ScrollAll;e.Handled=true;
+        inertia.Begin(InputTime);yawVelocity=pitchVelocity=0;dragPoint=e.GetPosition(this);dragging=CaptureMouse();Cursor=Cursors.ScrollAll;e.Handled=true;
     }
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);if(!dragging)return;
         if(e.LeftButton!=MouseButtonState.Pressed){ReleaseMouseCapture();return;}
-        var point=e.GetPosition(this);RotateBy(point.X-dragPoint.X,point.Y-dragPoint.Y);dragPoint=point;e.Handled=true;
+        DragTo(e.GetPosition(this));e.Handled=true;
     }
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
-    {base.OnMouseLeftButtonUp(e);if(!dragging)return;dragging=false;ReleaseMouseCapture();Cursor=Cursors.Hand;e.Handled=true;}
+    {base.OnMouseLeftButtonUp(e);if(!dragging)return;DragTo(e.GetPosition(this));dragging=false;if(motion)inertia.Release(InputTime);else inertia.Stop();ReleaseMouseCapture();Cursor=Cursors.Hand;e.Handled=true;}
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {base.OnMouseWheel(e);if(scene!="earth")return;SetZoom(targetZoom*Math.Pow(1.18,e.Delta/120.0));e.Handled=true;}
     public void RotateBy(double dx,double dy)
+    {inertia.Stop();ApplyDragRotation(dx,dy);}
+    void DragTo(Point point)
+    {
+        double dx=point.X-dragPoint.X,dy=point.Y-dragPoint.Y;if(dx==0&&dy==0)return;
+        double oldYaw=yaw,oldPitch=pitch;ApplyDragRotation(dx,dy);dragPoint=point;
+        if(motion)inertia.Sample(yaw-oldYaw,pitch-oldPitch,InputTime);
+    }
+    void ApplyDragRotation(double dx,double dy)
     {
         manualView=true;double sensitivity=2/Math.Max(100,radius*zoom);
         yaw-=dx*sensitivity;pitch=Math.Clamp(pitch+dy*sensitivity,-1.5,1.5);toYaw=yaw;toPitch=pitch;yawVelocity=pitchVelocity=0;
@@ -120,7 +130,7 @@ public sealed class OrbitScene:FrameworkElement
     }
     public void ZoomToLocation()
     {
-        manualView=false;
+        inertia.Stop();manualView=false;
         if(place!=null){double desired=place.Longitude*Math.PI/180;toYaw=yaw+Math.Atan2(Math.Sin(desired-yaw),Math.Cos(desired-yaw));}
         SetZoom(targetZoom>1.1?1:2.4);
         if(!motion){yaw=toYaw;pitch=toPitch;UpdateRotation();DrawSignal(loop.Time);}
@@ -129,7 +139,11 @@ public sealed class OrbitScene:FrameworkElement
     static void Follow(ref double position,ref double velocity,double target,double dt)
     {const double omega=2.35;double offset=position-target,c=velocity+omega*offset,decay=Math.Exp(-omega*dt);position=target+(offset+c*dt)*decay;velocity=(velocity-omega*c*dt)*decay;}
     void OwnerChanged(object? sender,EventArgs e)=>Playback();
-    void Playback()=>loop.SetRunning(IsLoaded&&IsVisible&&owner?.WindowState!=WindowState.Minimized&&motion&&(scene!="none"||earthOpacity>.001||skyOpacity>.001));
+    void Playback()
+    {
+        bool running=IsLoaded&&IsVisible&&owner?.WindowState!=WindowState.Minimized&&motion&&(scene!="none"||earthOpacity>.001||skyOpacity>.001);
+        if(!running)inertia.Stop();loop.SetRunning(running);
+    }
     void UpdateSceneOpacity()
     {
         earthTarget=scene=="earth"?1:0;skyTarget=scene=="none"?0:scene=="earth"?.52:1;
@@ -139,7 +153,7 @@ public sealed class OrbitScene:FrameworkElement
     void ApplySceneOpacity(){globe.Opacity=earthOpacity;disk.Opacity=earthOpacity;signal.Opacity=earthOpacity;foreach(var star in stars)star.Visual.Opacity=skyOpacity;}
     public void Focus(Place? target,bool source=false)
     {
-        if(place==target&&origin==source)return;manualView=false;previousPlace=place;previousLabel=label;place=target;origin=source;selectedAt=loop.Time;
+        if(place==target&&origin==source)return;inertia.Stop();manualView=false;previousPlace=place;previousLabel=label;place=target;origin=source;selectedAt=loop.Time;
         countryBorder.Geometry=source||target==null?null:CountryBorders.Mesh(target.Code);
         if(target==null){toYaw=yaw;toPitch=pitch;}
         else{double desired=target.Longitude*Math.PI/180;toYaw=yaw+Math.Atan2(Math.Sin(desired-yaw),Math.Cos(desired-yaw));toPitch=Math.Clamp(target.Latitude*Math.PI/180-(targetZoom>1.05?0:.34),-1.5,1.5);}
@@ -151,6 +165,11 @@ public sealed class OrbitScene:FrameworkElement
         var watch=Stopwatch.StartNew();
         if(!dragging&&!manualView&&place!=null){Follow(ref yaw,ref yawVelocity,toYaw,dt);Follow(ref pitch,ref pitchVelocity,toPitch,dt);}
         else if(!dragging&&!manualView){double speed=.028;double blend=1-Math.Exp(-dt*2);yawVelocity+=(speed-yawVelocity)*blend;yaw+=yawVelocity*dt;}
+        else if(!dragging&&manualView&&scene=="earth")
+        {
+            var delta=inertia.Advance(dt);yaw+=delta.X;double nextPitch=pitch+delta.Y;pitch=Math.Clamp(nextPitch,-1.5,1.5);
+            if(pitch!=nextPitch)inertia.StopVertical();toYaw=yaw;toPitch=pitch;
+        }
         zoom+=(targetZoom-zoom)*(1-Math.Exp(-dt*10));
         activation+=( (connected?1:0)-activation)*(1-Math.Exp(-dt*9));
         double fade=1-Math.Exp(-dt*10);earthOpacity+=(earthTarget-earthOpacity)*fade;skyOpacity+=(skyTarget-skyOpacity)*fade;

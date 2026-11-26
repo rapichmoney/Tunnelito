@@ -30,6 +30,24 @@ static class Program
     }
     [STAThread]static int Main(string[] args)
     {
+        var momentum=new GlobeInertia();momentum.Begin(0);momentum.Sample(-.2,.03,.04);momentum.Release(.041);
+        double speed=Math.Abs(momentum.X);var displacement=momentum.Advance(.1);
+        Check(momentum.Active&&displacement.X<0&&Math.Abs(momentum.X)<speed,"Release preserves pointer direction and smoothly reduces angular speed");
+        for(int i=0;i<100;i++)momentum.Advance(.1);
+        Check(!momentum.Active&&momentum.X==0&&momentum.Y==0,"A thrown globe eventually stops");
+        momentum.Begin(0);momentum.Sample(.2,0,.04);momentum.Release(.5);
+        Check(!momentum.Active,"Holding the pointer still before release does not launch the globe");
+        momentum.Begin(1);momentum.Sample(.2,0,1.04);momentum.Release(1.04);momentum.Begin(2);
+        Check(!momentum.Active&&momentum.X==0,"A new grab immediately clears previous momentum");
+        momentum.Sample(-.2,0,2.04);momentum.Release(2.04);
+        Check(momentum.Active&&momentum.X<0,"A new grab can reverse the throw direction");
+        double Travel(int frames)
+        {
+            var inertia=new GlobeInertia();inertia.Begin(0);inertia.Sample(.2,0,.1);inertia.Release(.1);
+            double sum=0;for(int i=0;i<frames;i++)sum+=inertia.Advance(1.0/frames).X;return sum;
+        }
+        Check(Math.Abs(Travel(60)-Travel(144))<1e-10,"Inertial travel is the same at 60 and 144 frames per second");
+        if(args.Contains("--inertia-only")){Console.WriteLine("COMPLETE: "+checks+" inertia checks passed.");return 0;}
         if(args.Contains("--origin-direct-probe"))
         {
             try{var network=DirectNetwork.Interface();var location=OriginLocator.Locate(network,CancellationToken.None).GetAwaiter().GetResult();Console.WriteLine("PASS direct interface geolocation returned country "+location.Code+"; no IP address stored");return 0;}catch(Exception ex){Console.WriteLine(ex.Message);return 1;}

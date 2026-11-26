@@ -7,6 +7,8 @@ namespace RelayDesk;
 
 public sealed class EngineSession(Store store, Action<string> log)
 {
+    public HttpsInspectionProxy? HttpsInspector{get;private set;}
+    static int AvailablePort(){var socket=new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,0);socket.Start();int port=((System.Net.IPEndPoint)socket.LocalEndpoint).Port;socket.Stop();return port;}
     public XrayConnectionHistory XrayConnections { get; } = new();
     public Process? Proxy { get; private set; }
     public Process? Zapret { get; private set; }
@@ -88,7 +90,7 @@ public sealed class EngineSession(Store store, Action<string> log)
     {
         if (busy) throw new InvalidOperationException("Дождись завершения переключения режима.");
         var target = RuntimePolicy.Mode(profile != null, zapret);
-        if (Mode == target && ReferenceEquals(profile, ActiveProfile) && ProxyRunning == (profile != null) && ZapretRunning == zapret && Equals(activeSettings?.Connection,store.Settings.Connection)&&activeSettings?.RoutingPreset==store.Settings.RoutingPreset&&activeSettings?.FallbackRoute==store.Settings.FallbackRoute) return;
+        if (Mode == target && ReferenceEquals(profile, ActiveProfile) && ProxyRunning == (profile != null) && ZapretRunning == zapret && Equals(activeSettings?.Connection,store.Settings.Connection)&&activeSettings?.RoutingPreset==store.Settings.RoutingPreset&&activeSettings?.FallbackRoute==store.Settings.FallbackRoute&&activeSettings?.HttpsInspection==store.Settings.HttpsInspection) return;
         var previousProfile = ProxyRunning ? ActiveProfile : null; var previousZapret = ZapretRunning;
         var previousSettings = activeSettings ?? store.Settings;
         // Validate and write the target before touching live processes.
@@ -172,6 +174,14 @@ public sealed class EngineSession(Store store, Action<string> log)
         var proxy = JsonTools.LocalProxy(network);
         if (HasLocalInput(network) && IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(x => x.Port == proxy.Port)) throw new InvalidOperationException($"Локальный порт {proxy.Port} уже занят.");
         var runtime = WriteConfig(p, false, settings, mode);
+        int httpsVpn=0,httpsDirect=0;
+        if(settings.HttpsInspection)
+        {
+            if(p.Core!="sing-box")throw new InvalidOperationException("HTTPS-перехват сейчас поддерживает sing-box. Отключи его для другого ядра.");
+            if(!HttpsCertificate.Trusted(store.Folder))throw new InvalidOperationException("Установи сертификат HTTPS в настройках Tunnelito.");
+            httpsVpn=AvailablePort();do{httpsDirect=AvailablePort();}while(httpsDirect==httpsVpn);
+            File.WriteAllText(runtime,HttpsAutoPolicy.ConfigureCore(File.ReadAllText(runtime),httpsVpn,httpsDirect));
+        }
         if(RuntimePolicy.LegacySubscriptionDns(p))log("Подписка: прежний DNS по умолчанию 1.1.1.1 заменён системным DNS в конфигурации запуска.");
         XrayConnections.Clear();
         if(p.Core=="Xray")
@@ -206,9 +216,15 @@ public sealed class EngineSession(Store store, Action<string> log)
             }
         }
         else { await Task.Delay(500); if (process.HasExited) throw new InvalidOperationException($"Ядро завершилось: код {process.ExitCode}."); }
-        if (network.SystemProxy) { lease.Apply(proxy); log("Системный прокси включён до отключения VPN."); }
+        if(settings.HttpsInspection)
+        {
+            HttpsInspector=new HttpsInspectionProxy(store.Folder,settings,p,proxy,httpsVpn,httpsDirect,AvailablePort());
+            lease.Apply(HttpsInspector.Endpoint);log("HTTPS-перехват включён. Автоповтор только GET/HEAD после 403 и с известным Referer/Origin.");
+        }
+        else if (network.SystemProxy) { lease.Apply(proxy); log("Системный прокси включён до отключения VPN."); }
         ActiveProxy=proxy;
         ActiveTransport=ConnectionTransport.Describe(network,File.ReadAllText(runtime));
+        if(settings.HttpsInspection)ActiveTransport+=" + HTTPS-перехват";
         ActiveRuntimeConfig=File.ReadAllText(runtime);
         log($"[{p.Core}] PID {process.Id}"); _ = Observe(process, false);
     }
@@ -229,7 +245,7 @@ public sealed class EngineSession(Store store, Action<string> log)
             await process.WaitForExitAsync();
             if ((zapret ? Zapret : Proxy) != process) return;
             log($"{(zapret ? "zapret" : "VPN")} завершился: код {process.ExitCode}.");
-            if (zapret) { Zapret = null; ActiveZapretArguments = []; } else { Proxy = null; ActiveProfile = null; ActiveTransport=""; ActiveProxy=null; ActiveRuntimeConfig=""; RestoreProxy(); }
+            if (zapret) { Zapret = null; ActiveZapretArguments = []; } else { Proxy = null; ActiveProfile = null; ActiveTransport=""; ActiveProxy=null; ActiveRuntimeConfig=""; RestoreProxy();HttpsInspector?.Dispose();HttpsInspector=null; }
             process.Dispose();
             while (busy) await Task.Delay(50);
             // If a transition or shutdown already replaced the sibling, it owns the final state.
@@ -246,6 +262,7 @@ public sealed class EngineSession(Store store, Action<string> log)
         ActiveTransport="";ActiveProxy=null;ActiveRuntimeConfig="";
         ActiveZapretArguments = [];
         RestoreProxy();
+        HttpsInspector?.Dispose();HttpsInspector=null;
         try { if (proxy != null) await Kill(proxy); }
         finally { if (zapret != null) await Kill(zapret); Mode = ConnectionMode.Off; Changed?.Invoke(); }
     }

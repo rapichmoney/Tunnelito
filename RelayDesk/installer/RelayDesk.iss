@@ -78,16 +78,19 @@ Type: files; Name: "{autodesktop}\RelayDesk.lnk"
 
 [Run]
 #ifndef TestBuild
+Filename: "{app}\Tunnelito.exe"; Parameters: "--install-https-certificate"; Flags: runhidden waituntilterminated runasoriginaluser
 Filename: "{app}\Tunnelito.exe"; Parameters: "--resume-update {code:GetResumeToken}"; Flags: nowait; Check: ShouldResume; AfterInstall: MarkResumed
 Filename: "{app}\Tunnelito.exe"; Description: "Запустить Tunnelito"; Flags: nowait postinstall skipifsilent runasoriginaluser; Check: NormalLaunch
 #endif
 
 [UninstallRun]
+Filename: "{app}\Tunnelito.exe"; Parameters: "--remove-https-certificate"; Flags: runhidden; RunOnceId: "RemoveTunnelitoHttpsCertificate"
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Remove-Startup.ps1"" -Executable ""{app}\RelayDesk.exe"""; Flags: runhidden; RunOnceId: "RemoveRelayDeskStartup"
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Remove-Startup.ps1"" -Executable ""{app}\Tunnelito.exe"""; Flags: runhidden; RunOnceId: "RemoveTunnelitoStartup"
 
 [Messages]
-russian.WelcomeLabel2=Установщик разместит Tunnelito и ядра sing-box, Xray, mihomo и Flowseal/zapret в Program Files.%n%nЯдра включены в пакет. Существующие профили RelayDesk сохраняются в прежней папке данных.
+russian.WelcomeLabel2=Установщик разместит Tunnelito и четыре ядра в Program Files.%n%nДля функции HTTPS будет добавлен локальный сертификат доверия текущего пользователя Windows. Перехват выключен до включения в настройках. Сертификат можно удалить из Tunnelito.%n%nПрофили и правила сохраняются.
+english.WelcomeLabel2=Setup installs Tunnelito and four network cores.%n%nA local HTTPS certificate will be added to the current Windows user's trust store. HTTPS inspection stays off until enabled in Settings. You can remove certificate trust from Tunnelito.%n%nExisting profiles and rules are preserved.
 
 [Code]
 var

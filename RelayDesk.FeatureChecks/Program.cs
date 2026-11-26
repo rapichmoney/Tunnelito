@@ -54,6 +54,9 @@ static class Program
                 Check(backend.ModernStore.Settings.SharedQuickRoutes!.Count==beforeUpdate&&backend.ModernStore.Settings.SharedQuickRoutes.Single(r=>r.Value=="json-import.example.org").Direct,mode+" reimport updates changed route without duplicate");
                 var same=new DomainBatchWindow(updateExport,backend.ModernStore.Settings.SharedQuickRoutes.Select(r=>new RouteRule{Kind=r.Kind,Value=r.Value,Route=r.Direct?"Напрямую":r.Zapret?"Через zapret":"Через VPN"}));same.Show();Pump();Check(Tree<TextBlock>(same).Any(t=>t.Text.Contains("Импорт не требуется")),mode+" identical export explains that rules already match");same.Close();
                 Call(window,"SelectPage",3);Pump();Check(Tree<Button>(window).Any(b=>b.Content?.ToString()=="Переустановить ядра Tunnelito…"),mode+" offers scoped core repair");
+                Check(Tree<Button>(window).Any(b=>b.Content?.ToString()=="Применить HTTPS-настройки")&&!backend.ModernStore.Settings.HttpsInspection,mode+" HTTPS feature is visible and off by default");
+                Check(Tree<Button>(window).Any(b=>b.Content?.ToString()=="Удалить доверие")&&Tree<Button>(window).Any(b=>b.Content?.ToString()=="Очистить временные правила"),mode+" certificate and transient rule removal are accessible");
+                bool noTrustBlocked=false;try{Wait(backend.ModernSetHttpsInspection(true,[]));}catch(InvalidOperationException){noTrustBlocked=true;}Check(noTrustBlocked&&!backend.ModernStore.Settings.HttpsInspection,mode+" untrusted inspection cannot be enabled accidentally");
                 if(mode=="orbit"&&args.Contains("--process"))
                 {
                     backend.ModernSaveRoutes([]);BundledCores.Bind(backend.ModernStore,Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"RelayDesk"));

@@ -67,6 +67,7 @@ public partial class MainWindow : Window
         InitializeWindowDrops();
         InitializeWindowClipboard();
         InitializeRuleTools();
+        InitializeHttpsSettings();
         InitializeOrbit();
         initialized=true;RefreshFromBackend();SelectPage(0);
         InitializeConnectionFilters();
@@ -116,7 +117,7 @@ public partial class MainWindow : Window
         if(backend.ModernHasUpdate){Notice.Text="Доступна версия "+backend.ModernUpdateVersion+". Обновление готовится автоматически; подробности в расширенных настройках.";}
         if(JournalPanel.Visibility==Visibility.Visible)Journal.Text=backend.ModernLog;
         if(currentPage==4)RefreshConnections();
-        UpdateConnectionClocks();RefreshTrayStatus();RefreshOrbit();
+        UpdateConnectionClocks();RefreshTrayStatus();RefreshOrbit();RefreshHttpsStatus();
     }
     void LoadProfileRules()
     {

@@ -31,6 +31,8 @@ public class Profile
 public class Preferences
 {
     public int BrandingVersion {get;set;}
+    public bool HttpsInspection {get;set;}
+    public List<string> HttpsExcludedDomains {get;set;}=[];
     public OriginLocation? OriginLocation {get;set;}
     public bool InterfaceMotion { get; set; } = true;
     public string OrbitBackground {get;set;}="earth";

@@ -16,6 +16,11 @@ public partial class App : Application
     public static string UpdateResumeToken {get;private set;}="";
     protected override void OnStartup(StartupEventArgs e)
     {
+        if(e.Args.FirstOrDefault() is "--install-https-certificate" or "--remove-https-certificate")
+        {
+            try{string folder=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"RelayDesk");if(e.Args[0]=="--install-https-certificate")HttpsCertificate.Install(folder);else HttpsCertificate.Remove(folder);Shutdown(0);}
+            catch{Shutdown(1);}return;
+        }
         if(e.Args.FirstOrDefault()=="--overlay-host"){overlayHost=true;ShutdownMode=ShutdownMode.OnExplicitShutdown;_=OverlayBridge.Host(e.Args);return;}
         WindowsStartupLaunch = e.Args.Contains("--windows-startup", StringComparer.Ordinal);
         int resumeIndex=Array.IndexOf(e.Args,"--resume-update");

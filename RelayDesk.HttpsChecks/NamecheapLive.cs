@@ -17,6 +17,8 @@ static class NamecheapLive
         string folder=Path.Combine(data,"https-live-check",Guid.NewGuid().ToString("N"));Directory.CreateDirectory(folder);
         int normal=Port(),vpn=Port(),direct=Port(),intercept=Port();
         var root=(JsonObject)original.DeepClone();root.Remove("experimental");
+        var clonedOutbounds=root["outbounds"]!.AsArray();
+        foreach(var item in clonedOutbounds.Where(n=>n?["tag"]?.GetValue<string>()=="tunnelito-https-egress").ToArray())clonedOutbounds.Remove(item);
         root["inbounds"]=new JsonArray(new JsonObject{["type"]="http",["tag"]="test-normal",["listen"]="127.0.0.1",["listen_port"]=normal});
         var route=root["route"]!.AsObject();route["rules"]=new JsonArray();route["final"]="test-normal-direct";route.Remove("auto_detect_interface");route["default_interface"]=DirectNetwork.Interface().Name;
         root["outbounds"]!.AsArray().Add(new JsonObject{["type"]="direct",["tag"]="test-normal-direct"});

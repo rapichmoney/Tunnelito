@@ -20,7 +20,13 @@ public sealed class HttpsAutoPolicy
     }
     public bool Begin(string host,string parent,string method,int status,bool alreadyProxy,IEnumerable<QuickRoute> rules)
     {
-        if(status!=403||alreadyProxy||method is not ("GET" or "HEAD")||!PublicHost(host)||!PublicHost(parent)||host==parent||DomainRoute(parent,rules)!="proxy"&&!Learnt(parent)||DomainRoute(host,rules)=="direct")return false;
+        return status==403&&BeginTransfer(host,parent,method,alreadyProxy,rules);
+    }
+    public bool CanInspectTransfer(string host,string parent,string method,bool alreadyProxy,IEnumerable<QuickRoute> rules)=>
+        !alreadyProxy&&method is "GET" or "HEAD"&&PublicHost(host)&&PublicHost(parent)&&host!=parent&&(DomainRoute(parent,rules)=="proxy"||Learnt(parent))&&DomainRoute(host,rules)!="direct";
+    public bool BeginTransfer(string host,string parent,string method,bool alreadyProxy,IEnumerable<QuickRoute> rules)
+    {
+        if(!CanInspectTransfer(host,parent,method,alreadyProxy,rules))return false;
         foreach(var expired in learned.Where(p=>p.Value.Expires<=DateTime.UtcNow).Select(p=>p.Key).ToArray())learned.TryRemove(expired,out _);
         if(learned.Count>=200)return false;
         var now=DateTime.UtcNow;

@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.36.0</Version>
-    <InformationalVersion>0.36.0-https-dependencies</InformationalVersion>
+    <Version>0.36.1</Version>
+    <InformationalVersion>0.36.1-https-transfer-recovery</InformationalVersion>
     <Product>Tunnelito</Product><Title>Tunnelito</Title><AssemblyTitle>Tunnelito</AssemblyTitle><Company>Tunnelito</Company><Description>Tunnelito — VPN и zapret</Description>
     <ApplicationIcon>Assets\RelayDesk.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);installer\**</DefaultItemExcludes>

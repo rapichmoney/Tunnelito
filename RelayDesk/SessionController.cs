@@ -8,6 +8,7 @@ namespace RelayDesk;
 public sealed class EngineSession(Store store, Action<string> log)
 {
     public HttpsInspectionProxy? HttpsInspector{get;private set;}
+    UdpProcessRoutes? udpProcessRoutes;
     static int AvailablePort(){var socket=new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,0);socket.Start();int port=((System.Net.IPEndPoint)socket.LocalEndpoint).Port;socket.Stop();return port;}
     public XrayConnectionHistory XrayConnections { get; } = new();
     public Process? Proxy { get; private set; }
@@ -197,6 +198,9 @@ public sealed class EngineSession(Store store, Action<string> log)
                 log("TUN RelayDesk: "+JsonTools.Text(tun?["interface_name"])+", "+JsonTools.Text(tun?["address"]?[0]));
             var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0); listener.Start(); var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
             File.WriteAllText(runtime, ConnectionMonitor.Configure(File.ReadAllText(runtime), port));
+            udpProcessRoutes=new UdpProcessRoutes(File.ReadAllText(runtime),store.Folder);
+            File.WriteAllText(runtime,udpProcessRoutes.Config);
+            if(udpProcessRoutes.RuleCount>0)log("UDP: резервные правила по владельцам портов Windows включены.");
         }
         if(p.Core=="mihomo")
         {
@@ -245,7 +249,7 @@ public sealed class EngineSession(Store store, Action<string> log)
             await process.WaitForExitAsync();
             if ((zapret ? Zapret : Proxy) != process) return;
             log($"{(zapret ? "zapret" : "VPN")} завершился: код {process.ExitCode}.");
-            if (zapret) { Zapret = null; ActiveZapretArguments = []; } else { Proxy = null; ActiveProfile = null; ActiveTransport=""; ActiveProxy=null; ActiveRuntimeConfig=""; RestoreProxy();HttpsInspector?.Dispose();HttpsInspector=null; }
+            if (zapret) { Zapret = null; ActiveZapretArguments = []; } else { Proxy = null; ActiveProfile = null; ActiveTransport=""; ActiveProxy=null; ActiveRuntimeConfig=""; RestoreProxy();HttpsInspector?.Dispose();HttpsInspector=null;udpProcessRoutes?.Dispose();udpProcessRoutes=null; }
             process.Dispose();
             while (busy) await Task.Delay(50);
             // If a transition or shutdown already replaced the sibling, it owns the final state.
@@ -263,6 +267,7 @@ public sealed class EngineSession(Store store, Action<string> log)
         ActiveZapretArguments = [];
         RestoreProxy();
         HttpsInspector?.Dispose();HttpsInspector=null;
+        udpProcessRoutes?.Dispose();udpProcessRoutes=null;
         try { if (proxy != null) await Kill(proxy); }
         finally { if (zapret != null) await Kill(zapret); Mode = ConnectionMode.Off; Changed?.Invoke(); }
     }

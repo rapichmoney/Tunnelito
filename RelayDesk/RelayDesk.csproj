@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.36.2</Version>
-    <InformationalVersion>0.36.2-globe-inertia</InformationalVersion>
+    <Version>0.36.3</Version>
+    <InformationalVersion>0.36.3-udp-process-routing</InformationalVersion>
     <Product>Tunnelito</Product><Title>Tunnelito</Title><AssemblyTitle>Tunnelito</AssemblyTitle><Company>Tunnelito</Company><Description>Tunnelito — VPN и zapret</Description>
     <ApplicationIcon>Assets\RelayDesk.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);installer\**</DefaultItemExcludes>

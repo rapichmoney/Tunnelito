@@ -6,13 +6,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.36.3</Version>
-    <InformationalVersion>0.36.3-udp-process-routing</InformationalVersion>
+    <Version>0.36.4</Version>
+    <InformationalVersion>0.36.4-happ-crypt4</InformationalVersion>
     <Product>Tunnelito</Product><Title>Tunnelito</Title><AssemblyTitle>Tunnelito</AssemblyTitle><Company>Tunnelito</Company><Description>Tunnelito — VPN и zapret</Description>
     <ApplicationIcon>Assets\RelayDesk.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);installer\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Assets\HappCrypt4.compatibility.der" LogicalName="RelayDesk.HappCrypt4.compatibility.der" />
     <EmbeddedResource Include="installer\cores.lock.json" LogicalName="RelayDesk.Cores.lock.json" />
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
     <None Update="Apply-Update.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
@@ -26,5 +27,5 @@
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
   </ItemGroup>
 
-<ItemGroup><None Update="Assets\Titanium.Web.Proxy.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><None Update="Assets\YamlDotNet.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><None Update="Assets\ZXing.Net.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup><ItemGroup><EmbeddedResource Include="Orbit\land.geojson" /><EmbeddedResource Include="Orbit\countries.geojson" /><EmbeddedResource Include="LegacyLayout.xml" /></ItemGroup><Target Name="TunnelitoBuildHost" AfterTargets="Build" Condition="Exists('$(TargetDir)RelayDesk.exe')"><Copy SourceFiles="$(TargetDir)RelayDesk.exe" DestinationFiles="$(TargetDir)Tunnelito.exe" /></Target>
+<ItemGroup><None Update="Assets\Happwn.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><None Update="Assets\HappCrypt4.NOTICE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><None Update="Assets\Titanium.Web.Proxy.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><None Update="Assets\YamlDotNet.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><None Update="Assets\ZXing.Net.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup><ItemGroup><EmbeddedResource Include="Orbit\land.geojson" /><EmbeddedResource Include="Orbit\countries.geojson" /><EmbeddedResource Include="LegacyLayout.xml" /></ItemGroup><Target Name="TunnelitoBuildHost" AfterTargets="Build" Condition="Exists('$(TargetDir)RelayDesk.exe')"><Copy SourceFiles="$(TargetDir)RelayDesk.exe" DestinationFiles="$(TargetDir)Tunnelito.exe" /></Target>
 <Target Name="TunnelitoPublishHost" AfterTargets="Publish" Condition="Exists('$(PublishDir)RelayDesk.exe')"><Copy SourceFiles="$(PublishDir)RelayDesk.exe" DestinationFiles="$(PublishDir)Tunnelito.exe" /></Target></Project>

@@ -52,7 +52,7 @@ public partial class MainWindow
                 var actions=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,24,0,0)};var add=new Button{Content="Сохранить",IsDefault=true,Margin=new Thickness(0,0,8,0)};var cancel=new Button{Content="Отмена",IsCancel=true};actions.Children.Add(add);actions.Children.Add(cancel);form.Children.Add(actions);add.Click+=(_,_)=>dialog.DialogResult=true;
                 if(dialog.ShowDialog()==true){backend.ModernAcceptShare(share);foreach(var profile in backend.ModernStore.Profiles)pendingRules.Add(profile.Id);LoadProfileRules();RefreshFromBackend();Toast("QR-пакет сохранён. Общие правила применятся после переподключения VPN.");}
             }
-            else if(text.StartsWith("https://",StringComparison.OrdinalIgnoreCase)||text.StartsWith("happ://add/",StringComparison.OrdinalIgnoreCase))await backend.ModernImportSubscription(text);
+            else if(Subscriptions.IsInput(text))await backend.ModernImportSubscription(text);
             else backend.ModernImportText(text);
             RefreshFromBackend();RefreshProfiles();
         }

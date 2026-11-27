@@ -9,7 +9,7 @@ public partial class Workspace
         if(subscriptionBusy||ModernBusy||HasChanges())throw new InvalidOperationException("Сохрани изменения и дождись текущей операции.");
         var address=Subscriptions.Address(text);
         var existing=store.Settings.Subscriptions.FirstOrDefault(s=>Subscriptions.Address(s.Url)==address);
-        var source=existing==null?new SubscriptionSource{Url=address.AbsoluteUri}:JsonSerializer.Deserialize<SubscriptionSource>(JsonSerializer.Serialize(existing))!;
+        var source=existing==null?new SubscriptionSource{Url=Subscriptions.StoredAddress(text)}:JsonSerializer.Deserialize<SubscriptionSource>(JsonSerializer.Serialize(existing))!;
         subscriptionBusy=true;
         try
         {

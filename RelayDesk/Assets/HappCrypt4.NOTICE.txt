@@ -1,0 +1,1 @@
+Happ crypt4 interoperability data from happwn, https://github.com/useruserdev/happwn, commit 8ae0171535a1622f100a1535a216afbe7675d58d. Apache-2.0; see Happwn.LICENSE.txt. The DER file is published compatibility key material, not a Tunnelito credential or user subscription. Tunnelito uses an independent C# decoder.

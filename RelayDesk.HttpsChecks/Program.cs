@@ -9,6 +9,7 @@ using System.Net.Security;
 using System.Text;
 using RelayDesk;
 
+if(args.Contains("--happ-links")){await HappLinkChecks.Run(args);return;}
 if(args.Contains("--udp-owners")){await UdpOwnerChecks.Run();return;}
 if(args.Contains("--namecheap")){await NamecheapLive.Run();return;}
 int count=0;

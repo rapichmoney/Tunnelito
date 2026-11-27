@@ -32,7 +32,7 @@ public static class ProgramJournal
     {
         foreach (var secret in Secrets.Keys.OrderByDescending(x => x.Length)) value = value.Replace(secret, "[скрыто]", StringComparison.Ordinal);
         value = Regex.Replace(value, @"\x1B\[[0-9;]*[A-Za-z]", "");
-        value = Regex.Replace(value, @"(?i)\b(?:https?|vless|vmess|trojan|ss|ssr)://[^\s<>""']+", "[ссылка скрыта]");
+        value = Regex.Replace(value, @"(?i)\b(?:https?|happ|vless|vmess|trojan|ss|ssr)\\?://[^\s<>""']+", "[ссылка скрыта]");
         value = Regex.Replace(value, @"(?i)([""']?(?:password|passwd|uuid|token|authorization|secret|private_key|public_key|short_id|subscription)[""']?\s*[:=]\s*)(?:""[^""]*""|'[^']*'|[^\s,;}]+)", "$1[скрыто]");
         value = Regex.Replace(value, @"\b[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\b|\b[0-9a-fA-F]{32,}\b|\b[A-Za-z0-9_+/=-]{40,}\b", "[идентификатор скрыт]");
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

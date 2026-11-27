@@ -21,6 +21,8 @@ public record SubscriptionDownload(ImportBatch Batch, string Title);
 
 public static class Subscriptions
 {
+    public static bool IsInput(string text){text=HappEncryptedLink.Normalize(text);return text.StartsWith("https://",StringComparison.OrdinalIgnoreCase)||text.StartsWith("happ://",StringComparison.OrdinalIgnoreCase);}
+    public static string StoredAddress(string text){text=HappEncryptedLink.Normalize(text);var address=Address(text);return HappEncryptedLink.IsEncrypted(text)?text:address.AbsoluteUri;}
     public static string InstallationId(string folder)
     {
         var path = Path.Combine(folder, "subscription-device.id"); Directory.CreateDirectory(folder);
@@ -35,10 +37,10 @@ public static class Subscriptions
     }
     public static Uri Address(string text)
     {
-        text = text.Trim();
+        text = HappEncryptedLink.Decode(text);
         if (text.StartsWith("happ://add/", StringComparison.OrdinalIgnoreCase)) text = text[11..];
         if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) || uri.Scheme != "https" || uri.UserInfo.Length > 0 || uri.Fragment.Length > 0)
-            throw new FormatException("Укажи HTTPS-ссылку подписки или happ://add/https://… без логина и пароля в адресе.");
+            throw new FormatException("Укажи HTTPS-подписку, happ://add/… или happ://crypt4/… без логина и пароля в адресе.");
         return uri;
     }
 

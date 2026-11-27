@@ -6,6 +6,8 @@ namespace RelayDesk;
 public sealed class SubscriptionWindow : ThemedWindow
 {
     public SubscriptionSource? Source { get; private set; }
+    public ImportResult? ProfilePreview{get;private set;}
+    public string InputGroup{get;private set;}="";
     public SubscriptionWindow(IEnumerable<SubscriptionSource> sources, string initialUrl, string initialGroup)
     {
         var existing = sources.ToArray();
@@ -18,7 +20,7 @@ public sealed class SubscriptionWindow : ThemedWindow
         panel.Children.Add(new TextBlock { Text = "Подписки", FontSize = 23, FontWeight = FontWeights.SemiBold });
         panel.Children.Add(new TextBlock { Text = "Выбери сохранённую подписку для обновления или вставь новую ссылку. Перед импортом можно выбрать серверы.", Style = (Style)FindResource("Caption"), Margin = new Thickness(0,8,0,16) });
         var saved = new ComboBox { ItemsSource = existing, Margin = new Thickness(0,0,0,14) }; panel.Children.Add(saved);
-        panel.Children.Add(new TextBlock { Text = "HTTPS, happ://add/… или happ://crypt4/…", Style = (Style)FindResource("Label") });
+        panel.Children.Add(new TextBlock { Text = "Подписка HTTPS / Happ, ссылка VLESS / VMess / Trojan / Shadowsocks или JSON", Style = (Style)FindResource("Label") });
         var address = new TextBox { Text = initialUrl, TextWrapping = TextWrapping.Wrap }; panel.Children.Add(address);
         panel.Children.Add(new TextBlock { Text = "Группа для новых серверов", Style = (Style)FindResource("Label") });
         var name = new TextBox { Text = initialGroup }; panel.Children.Add(name);
@@ -31,14 +33,26 @@ public sealed class SubscriptionWindow : ThemedWindow
         {
             try
             {
-                var url = Subscriptions.StoredAddress(address.Text);
                 var group = name.Text.Trim();
                 if (group.Length > 80 || group.Contains('\n') || group.Contains('\r') || group is "Все профили" or "Без группы") throw new FormatException("Выбери другое название группы, до 80 символов.");
+                if(!Subscriptions.IsInput(address.Text))
+                {
+                    ProfilePreview=ParseProfile(address.Text);InputGroup=group;DialogResult=true;return;
+                }
+                var url = Subscriptions.StoredAddress(address.Text);
                 var old = existing.FirstOrDefault(s => s.Url == url);
                 Source = new SubscriptionSource { Id = old?.Id ?? Guid.NewGuid().ToString("N"), Url = url, Group = group, SendDeviceId = device.IsChecked == true, UpdatedAt = old?.UpdatedAt };
                 DialogResult = true;
             }
             catch (FormatException ex) { MessageBox.Show(this, ex.Message, "Подписки"); }
         };
+    }
+    public static ImportResult ParseProfile(string text)
+    {
+        try{return ImportParser.Parse(text);}
+        catch(FormatException)when(text.TrimStart().StartsWith("vless://",StringComparison.OrdinalIgnoreCase))
+        {
+            var profile=Subscriptions.Parse(text).Profiles.Single();return new(profile,"Профиль "+profile.Protocol+" · "+profile.Core);
+        }
     }
 }

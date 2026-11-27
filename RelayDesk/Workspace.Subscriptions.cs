@@ -10,7 +10,9 @@ public partial class Workspace
     {
         if (subscriptionBusy || automationBusy || session.Busy || HasChanges()) throw new InvalidOperationException("Сохрани изменения профиля и дождись текущей операции.");
         var dialog = new SubscriptionWindow(store.Settings.Subscriptions, value, CurrentSubscriptionGroup) { Owner = Window.GetWindow(this) };
-        if (dialog.ShowDialog() != true || dialog.Source == null) return;
+        if (dialog.ShowDialog() != true) return;
+        if(dialog.ProfilePreview is {} profilePreview){AcceptProfilePreview(profilePreview,dialog.InputGroup);return;}
+        if(dialog.Source==null)return;
         var source = dialog.Source;
         subscriptionBusy = true;
         try
@@ -33,5 +35,11 @@ public partial class Workspace
             Write($"Подписка обновлена: добавлено {result.Added}, обновлено {result.Updated}.");
         }
         finally { subscriptionBusy = false; }
+    }
+    void AcceptProfilePreview(ImportResult result,string group)
+    {
+        var preview=new ImportWindow(result){Owner=Window.GetWindow(this)};
+        if(preview.ShowDialog()!=true||!CanSwitch())return;
+        result.Profile.SubscriptionGroup=group;AddProfile(result.Profile);Tabs.SelectedIndex=0;Write("Импортирован профиль: "+result.Profile.Name);
     }
 }

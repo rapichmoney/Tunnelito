@@ -9,6 +9,7 @@ using System.Net.Security;
 using System.Text;
 using RelayDesk;
 
+if(args.Contains("--owners")){await ConnectionOwnerChecks.Run();return;}
 if(args.Contains("--happ-links")){await HappLinkChecks.Run(args);return;}
 if(args.Contains("--udp-owners")){await UdpOwnerChecks.Run();return;}
 if(args.Contains("--namecheap")){await NamecheapLive.Run();return;}
@@ -57,6 +58,19 @@ var installed=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.P
 var core=store.Settings.Engines.GetValueOrDefault("sing-box");if(core!=null)
 {
     var file=Path.Combine(folder,"probe.json");File.WriteAllText(file,config);var start=new ProcessStartInfo(core){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true};foreach(var arg in new[]{"check","-c",file})start.ArgumentList.Add(arg);using var process=Process.Start(start)!;string error=await process.StandardError.ReadToEndAsync();await process.WaitForExitAsync();Check(process.ExitCode==0,"Real bundled sing-box accepts inspection routing: "+error);
+}
+using(var streaming=new Upstream(200){Payload=new string('Q',4*1024*1024+1),Stall=true})
+using(var inspector=new HttpsInspectionProxy(folder,settings,new Profile(),new Uri("http://127.0.0.1:"+streaming.Port),vpn.Port,direct.Port,Port(),requireTrusted:false))
+using(var ownerClient=new HttpClient(new HttpClientHandler{Proxy=new WebProxy(inspector.Endpoint),UseProxy=true}){Timeout=TimeSpan.FromSeconds(12)})
+{
+    foreach(bool dependency in new[]{false,true})
+    {
+        using var request=new HttpRequestMessage(HttpMethod.Get,"http://owner.example.test/file.js");if(dependency)request.Headers.Referrer=new Uri("https://root.example.test/");
+        using var response=await ownerClient.SendAsync(request,HttpCompletionOption.ResponseHeadersRead);
+        var row=new ConnectionRow("owner","Tunnelito.exe","owner.example.test:80","TCP","Напрямую","direct","final","",""){ProcessPath=Environment.ProcessPath!,SourceAddress="127.0.0.1",SourcePort=streaming.LastSourcePort};
+        var attributed=inspector.Owners.Project([row]).Single();
+        Check(attributed.OriginalOwner&&attributed.ProcessPath==Environment.ProcessPath,"Real "+(dependency?"HttpClient recovery/probe":"Titanium forwarding")+" upstream socket retains its original client owner");
+    }
 }
 Console.WriteLine($"COMPLETE: {count} HTTPS checks passed.");
 using(var stuck=new Upstream(200){Payload="broken-first-response",Stall=true,Chunked=true})
@@ -134,6 +148,16 @@ if(args.Contains("--tls")||args.Contains("--system-trust"))
         using var stuckRequest=new HttpRequestMessage(HttpMethod.Get,"https://tls-stuck.example.test/file.js");stuckRequest.Headers.Referrer=new Uri("https://root.example.test/");
         using var stuckResult=await client.SendAsync(stuckRequest);
         Check(stuckResult.StatusCode==HttpStatusCode.OK&&await stuckResult.Content.ReadAsStringAsync()=="complete-tls-vpn-body"&&inspector.Policy.Learnt("tls-stuck.example.test"),"Stalled real TLS body is replaced by a fully validated VPN TLS response"); }
+        if(systemTrust)
+        {
+            tlsNormal.Payload=new string('Z',4*1024*1024+1);tlsNormal.Chunked=false;tlsNormal.Stall=true;
+            var excludedSettings=new Preferences{HttpsExcludedDomains=["tls-excluded.example.test"]};
+            using var excluded=new HttpsInspectionProxy(tlsFolder,excludedSettings,new Profile(),new Uri("http://127.0.0.1:"+tlsNormal.Port),tlsVpn.Port,direct.Port,Port());
+            using var excludedClient=new HttpClient(new HttpClientHandler{Proxy=new WebProxy(excluded.Endpoint),UseProxy=true}){Timeout=TimeSpan.FromSeconds(12)};
+            using var result=await excludedClient.GetAsync("https://tls-excluded.example.test/",HttpCompletionOption.ResponseHeadersRead);
+            var row=new ConnectionRow("excluded","Tunnelito.exe","tls-excluded.example.test:443","TCP","Напрямую","direct","final","",""){ProcessPath=Environment.ProcessPath!,SourceAddress="127.0.0.1",SourcePort=tlsNormal.LastSourcePort};
+            Check(excluded.Owners.Project([row]).Single().OriginalOwner,"Uninspected TLS tunnels also retain exact original ownership without decrypting their traffic");
+        }
     }
     finally{Check(!HttpsCertificate.Trusted(folder),"TLS test did not change Windows trusted roots");}
 }
@@ -143,7 +167,7 @@ sealed class Upstream:IDisposable
 {
     readonly TcpListener listener=new(IPAddress.Loopback,0);readonly CancellationTokenSource cancel=new();
     public int Port{get;}public int Status;public int Requests;
-    public string Payload="",LastHeaders="";public bool Stall,Truncate,Chunked,Gzip;
+    public string Payload="",LastHeaders="";public bool Stall,Truncate,Chunked,Gzip;public int LastSourcePort;
     readonly X509Certificate2? authority;
     public Upstream(int status,X509Certificate2? root=null){authority=root;Status=status;listener.Start();Port=((IPEndPoint)listener.LocalEndpoint).Port;_=Loop();}
     async Task Loop(){try{while(!cancel.IsCancellationRequested){var socket=await listener.AcceptTcpClientAsync(cancel.Token);_=Handle(socket);}}catch(OperationCanceledException){}catch(SocketException){}}
@@ -153,6 +177,7 @@ sealed class Upstream:IDisposable
         {
             try
             {
+                LastSourcePort=((IPEndPoint)client.Client.RemoteEndPoint!).Port;
                 Stream stream=client.GetStream();using var reader=new StreamReader(stream,Encoding.ASCII,false,1024,true);string? first=await reader.ReadLineAsync(cancel.Token);while(await reader.ReadLineAsync(cancel.Token) is string line&&line.Length>0){LastHeaders+=line+"\n";}
                 if(first?.StartsWith("CONNECT ")==true&&authority!=null)
                 {

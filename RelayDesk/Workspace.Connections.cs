@@ -39,6 +39,7 @@ public partial class Workspace
             var rows = core=="Xray" ? session.XrayConnections.Read(config,session.ZapretRunning,session.ActiveZapretArguments)
                 : await connectionMonitor.Read(core=="mihomo" ? MihomoConnections.MonitorConfig(config) : config, own ? session.ZapretRunning : null, own ? session.ActiveZapretArguments : [], connectionCancel.Token);
             if(core=="mihomo") rows=rows.Select(r=>r with { CanEdit=false }).ToList();
+            if(own&&core=="sing-box"&&session.HttpsInspector is {} inspector)rows=inspector.Owners.Project(rows);
             if (closing) return;
             connectionRows = rows; FilterConnections();
             var direct = rows.Count(r => r.Route == "Напрямую"); var proxy = rows.Count(r => r.Route == "Через VPN / прокси");

@@ -29,25 +29,35 @@ public sealed class HttpsInspectionProxy:IDisposable
     public Uri Endpoint{get;}
     public string[] Events{get{lock(events)return events.ToArray();}}
     public HttpsAutoPolicy Policy=>policy;
+    public ProxyConnectionOwners Owners{get;}
+    static readonly System.Net.Http.HttpRequestOptionsKey<ProxyConnectionOwners.Owner> OwnerOption=new("Tunnelito.OriginalOwner");
     public HttpsInspectionProxy(string folder,Preferences preferences,Profile active,Uri normalEndpoint,int vpnPort,int directPort,int port,Action<string>? log=null,bool requireTrusted=true)
     {
         if(requireTrusted&&!HttpsCertificate.Trusted(folder))throw new InvalidOperationException("Сертификат HTTPS не доверен. Установи его в настройках Tunnelito.");
         settings=System.Text.Json.JsonSerializer.Deserialize<Preferences>(System.Text.Json.JsonSerializer.Serialize(preferences))!;profile=active;
         report=text=>{lock(events){events.Enqueue(DateTime.Now.ToString("HH:mm:ss")+" "+text);while(events.Count>100)events.Dequeue();}log?.Invoke(text);};
         normal=new(normalEndpoint.Host,normalEndpoint.Port){BypassLocalhost=false};vpn=new("127.0.0.1",vpnPort){BypassLocalhost=false};direct=new("127.0.0.1",directPort){BypassLocalhost=false};
+        Owners=new(normalEndpoint.Port,vpnPort,directPort);
         recovery=TransferClient(new Uri("http://127.0.0.1:"+vpnPort));normalTransfers=TransferClient(normalEndpoint);directTransfers=TransferClient(new Uri("http://127.0.0.1:"+directPort));
         authority=HttpsCertificate.Load(folder,false);server.CertificateManager.RootCertificate=authority;server.CertificateManager.SaveFakeCertificates=false;
         // Keep server certificate validation enabled. Never save request/response bodies or cookies.
         server.BeforeRequest+=Request;server.BeforeResponse+=Response;
+        server.OnServerConnectionCreate+=(_,socket)=>{Owners.CaptureReserved(socket);return Task.CompletedTask;};
         server.AfterResponse+=(_,e)=>{if(e.UserData is Attempt state)Interlocked.Exchange(ref state.Cleanup,null)?.Invoke();return Task.CompletedTask;};
         server.ExceptionFunc=error=>report(DescribeTransportError(error));
         var endpoint=new ExplicitProxyEndPoint(IPAddress.Loopback,port,true);
         endpoint.BeforeTunnelConnectRequest+=(_,e)=>
         {
+            Owners.Watch(e);
             string host=e.HttpClient.Request.RequestUri.IdnHost;
-            if(!HttpsAutoPolicy.PublicHost(host)||settings.HttpsExcludedDomains.Any(d=>RuleMatching.DomainIn(host,d)))e.DecryptSsl=false;
+            if(!HttpsAutoPolicy.PublicHost(host)||settings.HttpsExcludedDomains.Any(d=>RuleMatching.DomainIn(host,d)))
+            {
+                e.DecryptSsl=false;
+                if(IPAddress.TryParse(normal.HostName,out var local)&&IPAddress.IsLoopback(local))e.HttpClient.UpStreamEndPoint=Owners.ReserveSource(e,local);
+            }
             e.CustomUpStreamProxy=normal;return Task.CompletedTask;
         };
+        endpoint.BeforeTunnelConnectResponse+=(_,e)=>{Owners.Capture(e);return Task.CompletedTask;};
         server.AddEndPoint(endpoint);
         try{server.Start();}catch{server.Dispose();recovery.Dispose();normalTransfers.Dispose();directTransfers.Dispose();authority.Dispose();throw;}
         Endpoint=new Uri("http://127.0.0.1:"+endpoint.Port);
@@ -67,6 +77,7 @@ public sealed class HttpsInspectionProxy:IDisposable
     }
     async Task Request(object sender,SessionEventArgs e)
     {
+        Owners.Watch(e);
         if(e.UserData is Attempt existing&&existing.Retried){e.CustomUpStreamProxy=vpn;return;}
         var request=e.HttpClient.Request;string host=request.RequestUri.IdnHost.ToLowerInvariant();
         string parent=HttpsAutoPolicy.Host(request.Headers.GetFirstHeader("Referer")?.Value);
@@ -90,6 +101,7 @@ public sealed class HttpsInspectionProxy:IDisposable
     }
     Task Response(object sender,SessionEventArgs e)
     {
+        Owners.Capture(e);
         if(e.UserData is not Attempt state)return Task.CompletedTask;
         int status=e.HttpClient.Response.StatusCode;
         if(state.Retried)
@@ -105,11 +117,26 @@ public sealed class HttpsInspectionProxy:IDisposable
         }
         return Task.CompletedTask;
     }
-    static System.Net.Http.HttpClient TransferClient(Uri endpoint)=>new(new System.Net.Http.SocketsHttpHandler{Proxy=new WebProxy(endpoint),UseProxy=true,UseCookies=false,AllowAutoRedirect=false,AutomaticDecompression=DecompressionMethods.None,ConnectTimeout=TransferTimeout}){Timeout=Timeout.InfiniteTimeSpan};
+    System.Net.Http.HttpClient TransferClient(Uri endpoint)=>new(new System.Net.Http.SocketsHttpHandler{
+        Proxy=new WebProxy(endpoint),UseProxy=true,UseCookies=false,AllowAutoRedirect=false,AutomaticDecompression=DecompressionMethods.None,ConnectTimeout=TransferTimeout,
+        PooledConnectionLifetime=TimeSpan.Zero,PooledConnectionIdleTimeout=TimeSpan.Zero,
+        ConnectCallback=async(context,token)=>
+        {
+            var socket=new System.Net.Sockets.Socket(System.Net.Sockets.SocketType.Stream,System.Net.Sockets.ProtocolType.Tcp){NoDelay=true};
+            try
+            {
+                await socket.ConnectAsync(context.DnsEndPoint,token);
+                context.InitialRequestMessage.Options.TryGetValue(OwnerOption,out var owner);Owners.Track(socket,owner);
+                return new System.Net.Sockets.NetworkStream(socket,true);
+            }
+            catch{socket.Dispose();throw;}
+        }}){Timeout=Timeout.InfiniteTimeSpan};
     static readonly HashSet<string> HopHeaders=new(StringComparer.OrdinalIgnoreCase){"Host","Connection","Proxy-Connection","Proxy-Authorization","Proxy-Authenticate","Transfer-Encoding","Content-Length","Keep-Alive","TE","Trailer","Upgrade"};
     static System.Net.Http.HttpRequestMessage TransferRequest(SessionEventArgs e)
     {
         var request=new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get,e.HttpClient.Request.RequestUri);
+        if(ProxyConnectionOwners.Identify(e) is {} owner)request.Options.Set(OwnerOption,owner);
+        request.Headers.ConnectionClose=true;
         var hop=new HashSet<string>(HopHeaders,StringComparer.OrdinalIgnoreCase);
         foreach(string named in (e.HttpClient.Request.Headers.GetFirstHeader("Connection")?.Value??"").Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries))hop.Add(named);
         foreach(var header in e.HttpClient.Request.Headers)if(!hop.Contains(header.Name))request.Headers.TryAddWithoutValidation(header.Name,header.Value);
@@ -212,5 +239,5 @@ public sealed class HttpsInspectionProxy:IDisposable
             if(!stopping.IsCancellationRequested)e.GenericResponse("",HttpStatusCode.BadGateway,closeServerConnection:true);
         }
     }
-    public void Dispose(){stopping.Cancel();recovery.Dispose();normalTransfers.Dispose();directTransfers.Dispose();server.BeforeRequest-=Request;server.BeforeResponse-=Response;server.Stop();server.Dispose();authority.Dispose();policy.Clear();}
+    public void Dispose(){stopping.Cancel();recovery.Dispose();normalTransfers.Dispose();directTransfers.Dispose();server.BeforeRequest-=Request;server.BeforeResponse-=Response;server.Stop();server.Dispose();Owners.Dispose();authority.Dispose();policy.Clear();}
 }

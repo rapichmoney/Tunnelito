@@ -33,6 +33,23 @@ static class Program
                 var listener=new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback,0);listener.Start();int port=((System.Net.IPEndPoint)listener.LocalEndpoint).Port;listener.Stop();
                 var store=new Store(folder);var profile=new Profile{Name="Test only",LocalPort=port,ProxyUri="http://127.0.0.1:"+port,Config=$"{{\"inbounds\":[{{\"type\":\"mixed\",\"listen\":\"127.0.0.1\",\"listen_port\":{port}}}],\"outbounds\":[{{\"type\":\"selector\",\"tag\":\"proxy\",\"outbounds\":[\"direct\"]}},{{\"type\":\"direct\",\"tag\":\"direct\"}}]}}"};store.Profiles.Add(profile);store.Settings.LastConnectedProfileId=profile.Id;store.Settings.Connection=new(false,false,port);store.Settings.SharedQuickRoutes=[];store.Settings.UiMode=mode;store.Settings.TrayEnabled=false;store.Settings.QuietMode=false;store.Settings.CheckComponentUpdates=false;store.Settings.InterfaceMotion=false;store.Settings.AsciiBackground=false;store.Save();
                 window=new MainWindow();window.Show();Pump();var backend=(Workspace)typeof(MainWindow).GetField("backend",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(window)!;
+                var slow=new Profile{Name="Slow QA",Core="sing-box",Config=profile.Config};var fast=new Profile{Name="Fast QA",Core="sing-box",Config=profile.Config};
+                backend.ModernStore.Profiles.Add(slow);backend.ModernStore.Profiles.Add(fast);
+                Call(window,"RecordLatency",new ServerLatency(slow.Name,slow.Core,"qa","1076 мс",1076){ProfileId=slow.Id});
+                Call(window,"RecordLatency",new ServerLatency(fast.Name,fast.Core,"qa","50 мс",50){ProfileId=fast.Id});
+                Call(window,"RefreshProfiles");var rows=(StackPanel)window.FindName("ProfileRows");
+                Check(Tree<TextBlock>(rows).Where(t=>t.Text is "Fast QA" or "Slow QA").Select(t=>t.Text).SequenceEqual(new[]{"Fast QA","Slow QA"}),mode+" profile list sorts by measured delay");
+                if(mode=="orbit")
+                {
+                    Call(window,"RefreshOrbitTree");var tree=(StackPanel)window.FindName("OrbitServerTree");
+                    Check(Tree<Button>(tree).Where(b=>b.Tag?.ToString()==fast.Id||b.Tag?.ToString()==slow.Id).Select(b=>b.Tag?.ToString()).SequenceEqual(new[]{fast.Id,slow.Id}),"Orbit sidebar uses the same numeric delay order");
+                }
+                Check(backend.ModernProfile?.Id==profile.Id,mode+" latency sorting preserves the selected profile");
+                backend.ModernStore.Profiles.Remove(slow);backend.ModernStore.Profiles.Remove(fast);Call(window,"RefreshProfiles");
+                using(var importDialog=new DisposableSubscriptionDialog(window))
+                {
+                    Check(importDialog.Accepted&&importDialog.Window.ProfilePreview?.Profile.Protocol=="VLESS"&&importDialog.Window.Source==null,mode+" subscription dialog routes a VLESS link into profile preview");
+                }
                 Call(window,"SelectPage",2);Pump();Check(Tree<Button>(window).Any(b=>b.Content?.ToString()=="Домены из буфера…"),mode+" offers bulk domain insertion");
                 bool seen=false;var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(100)};
                 timer.Tick+=(_,_)=>{var dialog=app.Windows.OfType<DomainBatchWindow>().FirstOrDefault();if(dialog==null)return;timer.Stop();seen=dialog.Owner==window;Tree<Button>(dialog).Single(b=>b.Content?.ToString()=="Добавить выбранные").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));};
@@ -109,4 +126,19 @@ static class Program
         catch(Exception ex){Console.WriteLine(ex);return 1;}
         finally{window?.Close();app.Shutdown();}
     }
+}
+
+sealed class DisposableSubscriptionDialog:IDisposable
+{
+    public SubscriptionWindow Window{get;}
+    public bool Accepted{get;}
+    public DisposableSubscriptionDialog(Window owner)
+    {
+        Window=new SubscriptionWindow([],"vless://11111111-1111-4111-8111-111111111111@node.example.invalid:8446?type=ws&security=none#QA","QA"){Owner=owner};
+        var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(100)};
+        timer.Tick+=(_,_)=>{timer.Stop();var button=Find<Button>(Window).Single(b=>b.Content?.ToString()=="Загрузить предпросмотр");button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));};
+        timer.Start();try{Accepted=Window.ShowDialog()==true;}finally{timer.Stop();}
+    }
+    static IEnumerable<T> Find<T>(DependencyObject root)where T:DependencyObject{if(root is T item)yield return item;for(int i=0;i<System.Windows.Media.VisualTreeHelper.GetChildrenCount(root);i++)foreach(var child in Find<T>(System.Windows.Media.VisualTreeHelper.GetChild(root,i)))yield return child;}
+    public void Dispose(){if(Window.IsVisible)Window.Close();}
 }

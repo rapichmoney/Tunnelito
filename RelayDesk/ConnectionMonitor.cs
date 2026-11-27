@@ -11,6 +11,9 @@ public sealed record ConnectionRow(string Id, string Application, string Destina
     public string ProcessPath { get; init; } = "";
     public string Host { get; init; } = "";
     public string Address { get; init; } = "";
+    public string SourceAddress {get;init;}="";
+    public int SourcePort {get;init;}
+    public bool OriginalOwner {get;init;}
     public long TotalBytes { get; init; }
     public bool CanEdit { get; init; } = true;
     public bool CanEditApplication => CanEdit && (ProcessPath.Length > 0 || Application.EndsWith(".exe", StringComparison.OrdinalIgnoreCase));
@@ -63,7 +66,8 @@ public sealed class ConnectionMonitor : IDisposable
             var route = Classify(chains, types);
             string scope = zapret == null ? "Состояние zapret неизвестно" : zapret == false ? "В Tunnelito выключен" : route != "Напрямую" ? "Не определено для внешнего туннеля" : MatchZapret(network, port, host, arguments);
             long.TryParse(JsonTools.Text(item["upload"]), out var upload); long.TryParse(JsonTools.Text(item["download"]), out var download);
-            rows.Add(new(JsonTools.Text(item["id"]), app, (host.Length > 0 ? host : ip) + ":" + port, network, route, string.Join(" → ", chains), JsonTools.Text(item["rule"]) + " " + JsonTools.Text(item["rulePayload"]), scope, $"↑ {JsonTools.Text(item["upload"])} / ↓ {JsonTools.Text(item["download"])} Б") { ProcessPath = path, Host = host, Address = ip, TotalBytes = Math.Max(0,upload) + Math.Max(0,download) });
+            int.TryParse(JsonTools.Text(metadata?["sourcePort"]),out int sourcePort);
+            rows.Add(new(JsonTools.Text(item["id"]), app, (host.Length > 0 ? host : ip) + ":" + port, network, route, string.Join(" → ", chains), JsonTools.Text(item["rule"]) + " " + JsonTools.Text(item["rulePayload"]), scope, $"↑ {JsonTools.Text(item["upload"])} / ↓ {JsonTools.Text(item["download"])} Б") { ProcessPath = path, Host = host, Address = ip,SourceAddress=JsonTools.Text(metadata?["sourceIP"]),SourcePort=sourcePort, TotalBytes = Math.Max(0,upload) + Math.Max(0,download) });
         }
         return rows;
     }

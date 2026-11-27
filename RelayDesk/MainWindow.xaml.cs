@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     readonly DispatcherTimer refresh=new(){Interval=TimeSpan.FromMilliseconds(500)};
     readonly HashSet<string> pendingRules=[];
     readonly Dictionary<string,string> latencyResults=[];
+    readonly Dictionary<string,long?> latencyMilliseconds=[];
     readonly CancellationTokenSource lifetime=new();
     bool initialized,loadingUi,refreshingRoutes,leaving,vpn,zapret,vpnBusy,zapretBusy;
     int currentPage,lastProcessId;
@@ -196,7 +197,7 @@ public partial class MainWindow : Window
     void RefreshProfiles()
     {
         if(ProfileRows==null)return;ProfileRows.Children.Clear();string group=GroupChoice.SelectedItem?.ToString()??"Все группы";
-        foreach(var profile in backend.ModernStore.Profiles.Where(p=>group=="Все группы"||group=="Без группы"&&p.SubscriptionGroup.Length==0||p.SubscriptionGroup==group))
+        foreach(var profile in ServerLatencyOrder.Sort(backend.ModernStore.Profiles.Where(p=>group=="Все группы"||group=="Без группы"&&p.SubscriptionGroup.Length==0||p.SubscriptionGroup==group),latencyMilliseconds))
         {
             var row=new Grid{Margin=new Thickness(0,0,0,12)};row.ColumnDefinitions.Add(new(){Width=new GridLength(1,GridUnitType.Star)});row.ColumnDefinitions.Add(new(){Width=new GridLength(160)});row.ColumnDefinitions.Add(new(){Width=new GridLength(110)});
             var text=new StackPanel{Margin=new Thickness(0,0,12,0)};text.Children.Add(new TextBlock{Text=profile.Name,FontSize=16});text.Children.Add(new TextBlock{Text=profile.Core+" · "+(profile.SubscriptionGroup.Length>0?profile.SubscriptionGroup:"Без группы")+" · TCP: "+latencyResults.GetValueOrDefault(profile.Id,"не проверен"),FontSize=12,Foreground=(Brush)FindResource("Muted"),Margin=new Thickness(0,5,0,0)});row.Children.Add(text);
@@ -207,7 +208,13 @@ public partial class MainWindow : Window
     async void ProbeServers(object sender,RoutedEventArgs e)
     {
         var button=(Button)sender;button.IsEnabled=false;
-        try{latencyResults.Clear();await ServerLatencyProbe.Run(backend.ModernStore.Profiles.Where(p=>p.Core!="zapret"),r=>Dispatcher.Invoke(()=>{foreach(var p in backend.ModernStore.Profiles.Where(p=>p.Name==r.Profile))latencyResults[p.Id]=r.Result;RefreshProfiles();}),lifetime.Token);Toast("TCP проверен по текущим маршрутам Windows. HTTPS проверяется отдельно.");}catch(Exception ex){Toast(ex.Message);}finally{button.IsEnabled=true;}
+        try{latencyResults.Clear();latencyMilliseconds.Clear();await ServerLatencyProbe.Run(backend.ModernStore.Profiles.Where(p=>p.Core!="zapret"),r=>Dispatcher.Invoke(()=>{RecordLatency(r);RefreshProfiles();if(!legacyUi)RefreshOrbitTree();}),lifetime.Token);Toast("TCP проверен по текущим маршрутам Windows. HTTPS проверяется отдельно.");}catch(Exception ex){Toast(ex.Message);}finally{button.IsEnabled=true;}
+    }
+    void RecordLatency(ServerLatency result)
+    {
+        if(result.ProfileId.Length==0)return;
+        if(!latencyMilliseconds.TryGetValue(result.ProfileId,out var previous)||result.Milliseconds is long current&&(!previous.HasValue||current<previous.Value))
+        {latencyMilliseconds[result.ProfileId]=result.Milliseconds;latencyResults[result.ProfileId]=result.Result;}
     }
     void AddGroup(object sender,RoutedEventArgs e)
     {

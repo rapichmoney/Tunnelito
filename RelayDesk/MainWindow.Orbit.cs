@@ -81,7 +81,7 @@ public partial class MainWindow
             var count=new TextBlock{Text=group.Count().ToString(),FontSize=11,Foreground=(Brush)FindResource("Muted"),VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(count,2);header.Children.Add(count);
             var toggle=new Button{Content=header,Style=(Style)FindResource("Plain"),HorizontalContentAlignment=HorizontalAlignment.Stretch,Padding=new Thickness(10,9,10,9)};box.Children.Add(toggle);box.Children.Add(body);
             toggle.Click+=(_,_)=>{bool expand=orbitCollapsed.Contains(group.Key);if(expand)orbitCollapsed.Remove(group.Key);else orbitCollapsed.Add(group.Key);body.Visibility=expand?Visibility.Visible:Visibility.Collapsed;((RotateTransform)arrow.RenderTransform).Angle=expand?90:0;};
-            foreach(var profile in group)
+            foreach(var profile in ServerLatencyOrder.Sort(group,latencyMilliseconds))
             {
                 var row=new Grid();row.ColumnDefinitions.Add(new(){Width=new GridLength(32)});row.ColumnDefinitions.Add(new());row.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
                 row.Children.Add(new CountryFlag{Code=OrbitPlace(profile)?.Code??"",VerticalAlignment=VerticalAlignment.Center});

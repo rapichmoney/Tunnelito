@@ -19,7 +19,7 @@ public partial class Workspace
         ServerPingsStatus.Text="Проверка TCP по текущим маршрутам Windows…";
         try
         {
-            await ServerLatencyProbe.Run(profiles,row=>Dispatcher.Invoke(()=>{ serverLatencies.Add(row); ServerPingsStatus.Text="Получено результатов: "+serverLatencies.Count; }),pingCancellation.Token);
+            await ServerLatencyProbe.Run(profiles,row=>Dispatcher.Invoke(()=>{int index=0;while(index<serverLatencies.Count&&(serverLatencies[index].Milliseconds??long.MaxValue)<=(row.Milliseconds??long.MaxValue))index++;serverLatencies.Insert(index,row);ServerPingsStatus.Text="Получено результатов: "+serverLatencies.Count;}),pingCancellation.Token);
             ServerPingsStatus.Text="Проверено адресов: "+serverLatencies.Count+". TCP включает разрешение DNS; доступность HTTPS проверяется отдельно.";
         }
         catch(OperationCanceledException) { ServerPingsStatus.Text="Проверка отменена. Получено результатов: "+serverLatencies.Count; }

@@ -21,6 +21,15 @@ public record SubscriptionDownload(ImportBatch Batch, string Title);
 
 public static class Subscriptions
 {
+    public static ImportResult ParseProfileLink(string text)
+    {
+        try{return ImportParser.Parse(text);}
+        catch(FormatException primary)when(text.TrimStart().StartsWith("vless://",StringComparison.OrdinalIgnoreCase))
+        {
+            try{return XrayLink(text.Trim());}
+            catch(FormatException){throw new FormatException(primary.Message);}
+        }
+    }
     public static bool IsInput(string text){text=HappEncryptedLink.Normalize(text);return text.StartsWith("https://",StringComparison.OrdinalIgnoreCase)||text.StartsWith("happ://",StringComparison.OrdinalIgnoreCase);}
     public static string StoredAddress(string text){text=HappEncryptedLink.Normalize(text);var address=Address(text);return HappEncryptedLink.IsEncrypted(text)?text:address.AbsoluteUri;}
     public static string InstallationId(string folder)
@@ -141,7 +150,7 @@ public static class Subscriptions
         if (transport == "ws" && new[] { "mode","serviceName" }.Any(k => Get(k).Length > 0)) throw new FormatException();
         if (transport == "xhttp" && new[] { "serviceName","heartbeatPeriod" }.Any(k => Get(k).Length > 0)) throw new FormatException();
         if (security != "reality" && new[] { "spx","pbk","sid" }.Any(k => Get(k).Length > 0)) throw new FormatException();
-        if (security == "none" && new[] { "sni","fp","alpn","insecure","allowInsecure" }.Any(q.ContainsKey)) throw new FormatException();
+        if (security == "none" && new[] { "sni","alpn","insecure","allowInsecure" }.Any(q.ContainsKey)) throw new FormatException();
         var stream = new JsonObject { ["network"] = transport, ["security"] = security };
         if (security == "reality")
         {

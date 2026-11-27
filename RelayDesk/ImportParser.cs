@@ -101,7 +101,7 @@ public static class ImportParser
             }
             outbound["tls"] = tls;
         }
-        else if (protocol == "trojan" || new[] { "sni", "peer", "fp", "pbk", "sid", "alpn", "insecure", "allowInsecure" }.Any(q.ContainsKey)) throw new FormatException("Параметры TLS заданы при security=none. Исправь ссылку или импортируй JSON.");
+        else if (protocol == "trojan" || new[] { "sni", "peer", "pbk", "sid", "alpn", "insecure", "allowInsecure" }.Any(q.ContainsKey)) throw new FormatException("Параметры TLS заданы при security=none. Исправь ссылку или импортируй JSON.");
         var transport = Get("type", "tcp");
         if (transport is "ws" or "httpupgrade")
         {
@@ -113,7 +113,8 @@ public static class ImportParser
         else if (transport is not ("tcp" or "raw")) throw new FormatException("Транспорт " + transport + " не поддержан импортом. Используй JSON нужного ядра.");
         if (transport is "tcp" or "raw" && new[] { "path", "host", "serviceName" }.Any(k => Get(k).Length > 0)) throw new FormatException("В TCP-ссылке есть параметры другого транспорта. Используй JSON.");
         if (transport is "ws" or "httpupgrade" && Get("serviceName").Length > 0 || transport == "grpc" && new[] { "path", "host" }.Any(k => Get(k).Length > 0)) throw new FormatException("Ссылка содержит параметры разных транспортов. Используй JSON.");
-        return Managed(outbound, Decode(uri.Fragment.TrimStart('#')), host, port, protocol.ToUpperInvariant());
+        var result=Managed(outbound, Decode(uri.Fragment.TrimStart('#')), host, port, protocol.ToUpperInvariant());
+        return security=="none"&&q.ContainsKey("fp")?result with{Summary=result.Summary+"\nfp не применяется: TLS выключен в исходной ссылке."}:result;
     }
     static ImportResult Vmess(JsonObject source)
     {

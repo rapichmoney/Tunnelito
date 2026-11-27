@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
+using System.IO;
+using System.Diagnostics;
 using RelayDesk;
 
 static class ConnectionOwnerChecks
@@ -34,6 +36,19 @@ static class ConnectionOwnerChecks
         Check(results.Select(r=>r.ProfileId).Distinct().Count()==2&&results.All(r=>r.Milliseconds.HasValue),"Ping results identify profiles by ID instead of duplicate display names");
         var parsed=SubscriptionWindow.ParseProfile("vless://11111111-1111-4111-8111-111111111111@node.example.invalid:8446?type=ws&path=%2F&security=none#QA");
         Check(parsed.Profile.Protocol=="VLESS"&&parsed.Profile.Port==8446,"Subscription dialog recognizes a standalone VLESS WebSocket profile");
+        const string sample="vless://11111111-1111-4111-8111-111111111111@node.example.invalid:8446?security=none&fp=chrome&type=ws&path=%2Fvless&packetEncoding=xudp&encryption=none#QA";
+        var result=SubscriptionWindow.ParseProfile(sample);var outbound=JsonTools.Object(result.Profile.Config)["outbounds"]![0]!;
+        Check(outbound["tls"]==null&&outbound["packet_encoding"]!.ToString()=="xudp"&&outbound["transport"]!["type"]!.ToString()=="ws"&&outbound["transport"]!["path"]!.ToString()=="/vless","No-TLS VLESS with a redundant fingerprint preserves WebSocket path and XUDP without enabling TLS");
+        Check(result.Summary.Contains("fp не применяется")&&Subscriptions.Parse(sample).Profiles.Count==1,"Preview explains ignored fingerprint and subscription parsing accepts the same combination");
+        bool rejected=false;try{_=ImportParser.Parse(sample.Replace("#QA","&sni=secure.example.invalid#QA"));}catch(FormatException){rejected=true;}
+        Check(rejected,"Other conflicting TLS parameters remain rejected with security=none");
+        bool clear=false;try{_=SubscriptionWindow.ParseProfile(sample.Replace("#QA","&sni=secure.example.invalid#QA"));}catch(FormatException error){clear=error.Message.Contains("TLS")&&!error.Message.Contains("В подписке нет");}
+        Check(clear,"Standalone link errors retain their actual cause instead of a generic subscription failure");
+        string config=JsonTools.Build(result.Profile);string folder=Path.Combine(Path.GetTempPath(),"Tunnelito-VLESS-QA-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(folder);string file=Path.Combine(folder,"runtime.json");File.WriteAllText(file,config);
+        var store=new Store(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"RelayDesk"));
+        var start=new ProcessStartInfo(store.Settings.Engines["sing-box"]){UseShellExecute=false,CreateNoWindow=true,RedirectStandardError=true};foreach(string arg in new[]{"check","-c",file})start.ArgumentList.Add(arg);
+        using var process=Process.Start(start)!;string stderr=await process.StandardError.ReadToEndAsync();await process.WaitForExitAsync();
+        Check(process.ExitCode==0,"Installed sing-box accepts the generated no-TLS WebSocket/XUDP configuration: "+stderr);
         Console.WriteLine("COMPLETE: "+count+" connection ownership, latency and import checks passed.");
     }
 }

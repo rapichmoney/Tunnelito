@@ -48,11 +48,5 @@ public sealed class SubscriptionWindow : ThemedWindow
         };
     }
     public static ImportResult ParseProfile(string text)
-    {
-        try{return ImportParser.Parse(text);}
-        catch(FormatException)when(text.TrimStart().StartsWith("vless://",StringComparison.OrdinalIgnoreCase))
-        {
-            var profile=Subscriptions.Parse(text).Profiles.Single();return new(profile,"Профиль "+profile.Protocol+" · "+profile.Core);
-        }
-    }
+        =>Subscriptions.ParseProfileLink(text);
 }

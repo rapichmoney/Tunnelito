@@ -134,7 +134,7 @@ sealed class DisposableSubscriptionDialog:IDisposable
     public bool Accepted{get;}
     public DisposableSubscriptionDialog(Window owner)
     {
-        Window=new SubscriptionWindow([],"vless://11111111-1111-4111-8111-111111111111@node.example.invalid:8446?type=ws&security=none#QA","QA"){Owner=owner};
+        Window=new SubscriptionWindow([],"vless://11111111-1111-4111-8111-111111111111@node.example.invalid:8446?security=none&fp=chrome&type=ws&path=%2Fvless&packetEncoding=xudp&encryption=none#QA","QA"){Owner=owner};
         var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(100)};
         timer.Tick+=(_,_)=>{timer.Stop();var button=Find<Button>(Window).Single(b=>b.Content?.ToString()=="Загрузить предпросмотр");button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));};
         timer.Start();try{Accepted=Window.ShowDialog()==true;}finally{timer.Stop();}
